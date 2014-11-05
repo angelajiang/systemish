@@ -1,4 +1,0 @@
-systemish
-=========
-
-So systemish.
