@@ -2,14 +2,21 @@
 #include<stdlib.h>
 #include<pthread.h>
 #include<time.h>
+#include<assert.h>
 
 #include "city.h"
 
 #define NUM_PKTS (16 * 1024 * 1024)
-#define NUM_LONGS 16
+#define NUM_LONGS 2
+
+#define USE_32 0
+#define USE_64 1
+#define USE_128 0
 
 int main(int argc, char **argv)
 {
+	/**< Use only one hash function */
+	assert(USE_32 + USE_64 + USE_128 == 1);
 	printf("Starting computing hashes\n");
 	struct timespec start, end;
 	clock_gettime(CLOCK_REALTIME, &start);
