@@ -47,8 +47,8 @@ done
 blue "Binding ports to igb_uio:"
 $RTE_SDK/tools/pci_unbind.py --bind=igb_uio 01:00.0
 $RTE_SDK/tools/pci_unbind.py --bind=igb_uio 01:00.1
-$RTE_SDK/tools/pci_unbind.py --bind=igb_uio 06:00.0
-$RTE_SDK/tools/pci_unbind.py --bind=igb_uio 06:00.1
+$RTE_SDK/tools/pci_unbind.py --bind=igb_uio 03:00.0
+$RTE_SDK/tools/pci_unbind.py --bind=igb_uio 03:00.1
 $RTE_SDK/tools/pci_unbind.py --bind=igb_uio 42:00.0
 $RTE_SDK/tools/pci_unbind.py --bind=igb_uio 42:00.1
 $RTE_SDK/tools/pci_unbind.py --bind=igb_uio 43:00.0
