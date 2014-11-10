@@ -7,8 +7,7 @@
 int main()
 {
 	struct ds_queue q;
-
-	ds_queue_init(q);
+	ds_queue_init(&q);
 
 	ds_queue_add(&q, 1);
 	assert(ds_queue_remove(&q) == 1);
@@ -21,8 +20,7 @@ int main()
 	assert(ds_queue_remove(&q) == 2);
 	assert(ds_queue_remove(&q) == 3);
 
-	assert(ds_queue_count(&q) == 2);
-	
+	assert(ds_queue_size(&q) == 2);
 
 	printf("Test passed\n");
 	return 0;
