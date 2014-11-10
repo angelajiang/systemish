@@ -48,9 +48,10 @@ int ds_queue_remove(struct ds_queue *q)
 
 	q->head = q->head->next;
 	q->count --;
+
 	if(q->head == NULL) {
-		q->head = NULL;
-		q->count = 0;
+		assert(q->count == 0);
+		q->tail = NULL;
 	}
 
 	free(old_head);
@@ -61,9 +62,9 @@ int ds_queue_remove(struct ds_queue *q)
 int ds_queue_is_empty(struct ds_queue *q)
 {
 	if(q->count == 0) {
-		return 0;
+		return 1;
 	}
-	return 1;
+	return 0;
 }
 
 int ds_queue_size(struct ds_queue *q)
@@ -77,5 +78,16 @@ void ds_queue_free(struct ds_queue *q)
 	while(ds_queue_size(q) != 0) {
 		ds_queue_remove(q);
 	}
+}
+
+void ds_queue_print(struct ds_queue *q)
+{
+	assert(q != NULL);
+	struct ds_qnode *t = q->head;
+	while(t != NULL) {
+		printf("%d ", t->data);
+		t = t->next;
+	}
+	printf("\n");
 }
 
