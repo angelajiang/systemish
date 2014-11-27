@@ -1,9 +1,0 @@
-Mimics pointer chasing by doing dependent accesses. 
-
-The simplest way to do this is addr = A[addr], but that leads
-to a cycle as soon as addr takes a value that has already been
-taken before. 
-
-The expected number of memory dereferences before
-that happens is given by the birthday paradox in is proportional
-to the square root of CAP.
