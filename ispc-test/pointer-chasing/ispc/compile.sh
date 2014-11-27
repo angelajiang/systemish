@@ -6,7 +6,7 @@ sudo ipcrm -M 3185
 rm main
 
 # Create C++ file
-ispc main.ispc --emit-c++ --cpu=corei7-avx --target=generic-16 -o main-ispc.cpp --c++-include-file=generic-16.h
+ispc main.ispc --emit-c++ --cpu=core-avx2 --target=generic-16 -o main-ispc.cpp --c++-include-file=generic-16.h
 
 # Compile the C program with the generated C++ file from ISPC
 # Disable compiler warnings produced by generic-16.h

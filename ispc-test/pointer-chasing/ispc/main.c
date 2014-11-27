@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<time.h>
 #include<string.h>
+#include<assert.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
@@ -30,19 +31,47 @@ void init_array()
 	printf("Done initializing\n");
 }
 
+
+/**< Non-ISPC version of pointer chasing */
+void ptr_chase(const int *A, int *sum) {
+
+	int i, j, addr[BATCH_SIZE];
+
+	for(j = 0; j < BATCH_SIZE; j ++) {
+		addr[j] = A[j];
+	}
+
+	for(i = 0; i < DEREF_LENGTH; i ++) {
+
+		for(j = 0; j < BATCH_SIZE; j ++) {
+			
+			sum[j] += A[addr[j]];
+			addr[j] = (A[addr[j]] + i) & CAP_;
+		}
+    }
+}
+
 int main(int argc, char **argv)
 {
 	int i;
 	int sum[BATCH_SIZE];
 	struct timespec start, end;
 
+	assert(argc == 2);
+	int use_ispc = atoi(argv[1]);
+	
 	memset(sum, 0, BATCH_SIZE * sizeof(int));
 
+	/**< Initialize the log for pointer chasing */
 	init_array();
 
 	clock_gettime(CLOCK_REALTIME, &start);
-	
-	ispc_ptr_chase(A, sum);
+
+	if(use_ispc == 1) {
+		ispc_ptr_chase(A, sum);
+	} else {
+		ptr_chase(A, sum);
+	}
 
 	clock_gettime(CLOCK_REALTIME, &end);
 	double seconds = (end.tv_sec - start.tv_sec) +

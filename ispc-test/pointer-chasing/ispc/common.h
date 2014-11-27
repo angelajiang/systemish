@@ -41,7 +41,7 @@
 /** Shared between main.c and main.ispc */
 #define BATCH_SIZE 16		/**< Batch size for ISPC */
 
-#define CAP K_512			/**< Capacity of the log in integers */
-#define CAP_ K_512_
+#define CAP 1024			/**< Capacity of the log in integers */
+#define CAP_ 1023
 
 #define DEREF_LENGTH M_4	/**< Number of pointers to follow in the log */
