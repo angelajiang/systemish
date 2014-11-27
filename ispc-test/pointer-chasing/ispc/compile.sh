@@ -8,6 +8,6 @@ rm main
 # Create C++ file
 ispc main.ispc --emit-c++ --cpu=corei7-avx --target=generic-16 -o main-ispc.cpp --c++-include-file=generic-16.h
 
-gcc -O3 -I $ISPC_HOME/examples/intrinsics/ main-ispc.cpp main.c -o main -lrt -lm
-
-
+# Compile the C program with the generated C++ file from ISPC
+# Disable compiler warnings produced by generic-16.h
+gcc -O3 -I $ISPC_HOME/examples/intrinsics/ main-ispc.cpp main.c -o main -lrt -lm -Wno-attributes -Wno-int-to-pointer-cast

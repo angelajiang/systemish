@@ -121,8 +121,8 @@ typedef union {
 
 /* Function Declarations */
 extern "C" {
-void simple___un_3C_uni_3E_un_3C_uni_3E_(uint32_t *A_, uint32_t *sum_, __vec16_i1 __mask_);
-void simple(uint32_t *A_, uint32_t *sum_);
+void ispc_ptr_chase___un_3C_uni_3E_un_3C_uni_3E_(uint32_t *A_, uint32_t *sum_, __vec16_i1 __mask_);
+void ispc_ptr_chase(uint32_t *A_, uint32_t *sum_);
 }
 
 
@@ -145,7 +145,7 @@ template <typename A, typename B> static inline int llvm_fcmp_oge(A X, B Y) { re
 template <typename A> A *Memset(A *ptr, int count, size_t len) { return (A *)memset(ptr, count, len); }
 
 
-void simple___un_3C_uni_3E_un_3C_uni_3E_(uint32_t *A_, uint32_t *sum_, __vec16_i1 __mask_) {
+void ispc_ptr_chase___un_3C_uni_3E_un_3C_uni_3E_(uint32_t *A_, uint32_t *sum_, __vec16_i1 __mask_) {
   bool internal_mask_26_function_mask31_any178_;
   uint8_t *A_load_ptr2int_2void153_;
   uint8_t *sum_load_ptr2int_2void_;
@@ -186,7 +186,7 @@ for_loop_2e_us_label: {
   ptr160_masked_load_2e_us_ =  /*tail*/ __masked_load_i32(sum_load_ptr2int_2void_, oldMask_26_test181_2e_us_);
   __masked_store_i32(ptrcast_, (__add(ptr160_masked_load_2e_us_, A_load35_offset_load154_2e_us_)), oldMask_26_test181_2e_us_);
   A_load49_offset_load172_2e_us_ =  /*tail*/ __gather_base_offsets32_i32(A_load_ptr2int_2void153_, 1u, mul__addr_load_2e_us_, oldMask_26_test181_2e_us_);
-  v1_2e_i_2e_us_ = __select(oldMask_26_test181_2e_us_, (__and((__add(A_load49_offset_load172_2e_us_, j_2e_0180_2e_us_)), __smear_i32<__vec16_i32>(134217727u))), v1_2e_i177179_2e_us_);
+  v1_2e_i_2e_us_ = __select(oldMask_26_test181_2e_us_, (__and((__add(A_load49_offset_load172_2e_us_, j_2e_0180_2e_us_)), __smear_i32<__vec16_i32>(524287u))), v1_2e_i177179_2e_us_);
   j_load59_plus1_2e_us_ = __add(j_2e_0180_2e_us_, __smear_i32<__vec16_i32>(1u));
   oldMask_26_test_2e_us_and_mask_ = __signed_less_than_i32_and_mask(j_load59_plus1_2e_us_, __smear_i32<__vec16_i32>(4194304u), oldMask_26_test181_2e_us_);
   internal_mask_26_function_mask31_any_2e_us_ = (( /*tail*/ __any(oldMask_26_test_2e_us_and_mask_))&1);
@@ -216,7 +216,7 @@ foreach_reset_label: {
 
 
 
-void simple(uint32_t *A_, uint32_t *sum_) {
+void ispc_ptr_chase(uint32_t *A_, uint32_t *sum_) {
   bool internal_mask_26_function_mask31_any178_;
   uint8_t *A_load_ptr2int_2void153_;
   uint8_t *sum_load_ptr2int_2void_;
@@ -257,7 +257,7 @@ for_loop_2e_us_label: {
   ptr160_masked_load_2e_us_ =  /*tail*/ __masked_load_i32(sum_load_ptr2int_2void_, oldMask_26_test181_2e_us_);
   __masked_store_i32(ptrcast_, (__add(ptr160_masked_load_2e_us_, A_load35_offset_load154_2e_us_)), oldMask_26_test181_2e_us_);
   A_load49_offset_load172_2e_us_ =  /*tail*/ __gather_base_offsets32_i32(A_load_ptr2int_2void153_, 1u, mul__addr_load_2e_us_, oldMask_26_test181_2e_us_);
-  v1_2e_i_2e_us_ = __select(oldMask_26_test181_2e_us_, (__and((__add(A_load49_offset_load172_2e_us_, j_2e_0180_2e_us_)), __smear_i32<__vec16_i32>(134217727u))), v1_2e_i177179_2e_us_);
+  v1_2e_i_2e_us_ = __select(oldMask_26_test181_2e_us_, (__and((__add(A_load49_offset_load172_2e_us_, j_2e_0180_2e_us_)), __smear_i32<__vec16_i32>(524287u))), v1_2e_i177179_2e_us_);
   j_load59_plus1_2e_us_ = __add(j_2e_0180_2e_us_, __smear_i32<__vec16_i32>(1u));
   oldMask_26_test_2e_us_and_mask_ = __signed_less_than_i32_and_mask(j_load59_plus1_2e_us_, __smear_i32<__vec16_i32>(4194304u), oldMask_26_test181_2e_us_);
   internal_mask_26_function_mask31_any_2e_us_ = (( /*tail*/ __any(oldMask_26_test_2e_us_and_mask_))&1);

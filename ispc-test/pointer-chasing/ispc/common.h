@@ -38,9 +38,10 @@
 #define M_2048 2147483648
 #define M_2048_ 2147483647
 
-// Shared between main.c and main.ispc
-#define BATCH_SIZE 16
-#define CAP M_128			//Capacity, in Integers
-#define CAP_ M_128_
+/** Shared between main.c and main.ispc */
+#define BATCH_SIZE 16		/**< Batch size for ISPC */
 
-#define DEREF_LENGTH M_4
+#define CAP K_512			/**< Capacity of the log in integers */
+#define CAP_ K_512_
+
+#define DEREF_LENGTH M_4	/**< Number of pointers to follow in the log */

@@ -1,6 +1,6 @@
 #include "common.h"
 
-export void simple(uniform int A[], uniform int sum[]) {
+export void ispc_ptr_chase(uniform int A[], uniform int sum[]) {
 
     foreach (i = 0 ... BATCH_SIZE) {
 
