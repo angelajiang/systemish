@@ -16,7 +16,7 @@ client_id=$1
 blue "Pulling latest client script"
 git pull
 
-options="--size=32 --run_infinitely --duration=1 --post_list=16"
+options="--size=32 --run_infinitely --duration=1"
 server="10.113.211.51"
 
 # Connect to servers on IB port 1
