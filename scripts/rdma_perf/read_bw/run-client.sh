@@ -13,6 +13,9 @@ fi
 
 client_id=$1
 
+blue "Pulling latest client script"
+git pull
+
 # Connect to servers on IB port 1
 ib_p1_port1=`expr 20000 + 2 \* $client_id`
 ib_p1_port2=`expr 20000 + 2 \* $client_id + 1`
