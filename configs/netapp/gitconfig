@@ -1,0 +1,11 @@
+[user]
+	name = Anuj Kalia
+	email = anujkaliaiitd@gmail.com
+[diff]
+	tool = vimdiff
+[difftool]
+	prompt = false
+[alias]
+	d = difftool
+[credential]
+	helper = cache --timeout 360000
