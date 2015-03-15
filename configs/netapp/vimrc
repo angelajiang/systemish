@@ -54,6 +54,7 @@ if filereadable("/etc/vim/vimrc.local")
 endif
 
 set tabstop=4
+set shiftwidth=4
 set number
 
 syntax on
