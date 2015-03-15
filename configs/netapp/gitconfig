@@ -9,3 +9,5 @@
 	d = difftool
 [credential]
 	helper = cache --timeout 360000
+[core]
+	editor = vim
