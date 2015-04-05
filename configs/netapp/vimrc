@@ -60,6 +60,7 @@ set number
 syntax on
 filetype on
 au BufNewFile,BufRead *.ispc set filetype=c
+au BufNewFile,BufRead *.pg set filetype=gnuplot
 
 colorscheme felek
 
