@@ -3,7 +3,7 @@
 #include<string.h>
 #include<time.h>
 
-#define NUM_PKTS (16 * 1024 * 1024)
+#define NUM_PKTS (256 * 1024 * 1024)
 #define NUM_LONGS 10
 
 int main(int argc, char **argv)
