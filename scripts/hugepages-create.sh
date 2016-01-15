@@ -5,4 +5,4 @@ if [ "$#" -ne 2 ]; then
 fi
 
 echo "Creating $2 hugepages on socket $1"
-echo $2 > /sys/devices/system/node/node$1/hugepages/hugepages-2048kB/nr_hugepages
+sudo bash -c "echo $2 > /sys/devices/system/node/node$1/hugepages/hugepages-2048kB/nr_hugepages"
