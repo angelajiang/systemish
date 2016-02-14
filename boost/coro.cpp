@@ -9,10 +9,23 @@
 #define FPU_ENABLE 1
 #define FPU_DISABLE 0
 
+#define SWITCH_IN_NON_INLINE 0
+
 using namespace boost::coroutines;
 int switch_i = 0, thread_id = 0;
 
 boost::coroutines::symmetric_coroutine<void>::call_type *thread_arr[NUM_THREADS];
+
+#if SWITCH_IN_NON_INLINE == 1
+void __attribute__ ((noinline))
+#else
+void
+#endif
+yield_func(boost::coroutines::symmetric_coroutine<void>::yield_type& yield)
+{
+	thread_id = (thread_id + 1) & (NUM_THREADS - 1);
+	yield(*thread_arr[thread_id]);
+}
 
 /*
  * The function executed by each coroutine. @switch_i represents the number of
@@ -22,8 +35,7 @@ void thread_func(boost::coroutines::symmetric_coroutine<void>::yield_type& yield
 {
 	while(switch_i < NUM_SWITCHES) {
 		switch_i++;
-		thread_id = (thread_id + 1) & (NUM_THREADS - 1);
-		yield(*thread_arr[thread_id]);
+		yield_func(yield);
 	}
 }
 
@@ -39,8 +51,9 @@ void test(int is_fpu_enabled)
 
 	/* Create @NUM_THREADS coroutines */
 	for(int thr_i = 0; thr_i < NUM_THREADS; thr_i++) {
-		thread_arr[thr_i] = new boost::coroutines::symmetric_coroutine<void>::call_type(
-			thread_func, boost::coroutines::attributes(fpu_flag));
+		thread_arr[thr_i] =
+			new boost::coroutines::symmetric_coroutine<void>::call_type(
+				thread_func, boost::coroutines::attributes(fpu_flag));
 	}
 
 	clock_gettime(CLOCK_REALTIME, &timer_start);
@@ -50,10 +63,12 @@ void test(int is_fpu_enabled)
 
 	clock_gettime(CLOCK_REALTIME, &timer_end);
 	assert(switch_i == NUM_SWITCHES);
+	printf("Thread ID = %d\n", thread_id);	/* Prevent optimization */
 
 	double ns = (timer_end.tv_sec - timer_start.tv_sec) * 1000000000 +
 		(double) (timer_end.tv_nsec - timer_start.tv_nsec);
-	printf("main: Time = %.2f ns, context switch time = %.2f ns, FPU enabled = %s\n",
+	printf("main: Time = %.2f ns, context switch time = %.2f ns, "
+		"FPU enabled = %s\n",
 		ns, ns / NUM_SWITCHES, is_fpu_enabled == FPU_ENABLE ? "yes" : "no");
 
 	/* Destroy the coroutines. */
