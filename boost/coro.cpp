@@ -2,17 +2,26 @@
 #include <iostream>
 #include <time.h>
 
-#define NUM_SWITCHES 200000000	/* 500 million switches */
 #define NUM_THREADS 8
 #define NUM_THREADS_ 7
+
+#define NUM_SWITCHES_PER_THREAD 10000000	/* 10 million */
+#define NUM_SWITCHES (NUM_THREADS * NUM_SWITCHES_PER_THREAD)
 
 #define FPU_ENABLE 1
 #define FPU_DISABLE 0
 
+/*
+ * Enable or disable switching. Useful for computing overhead unrelated to
+ * switching.
+ */
+#define ENABLE_SWITCHING 1
+
+/* Enable switching inside a non-inline function */
 #define SWITCH_IN_NON_INLINE 0
 
 using namespace boost::coroutines;
-int switch_i = 0, thread_id = 0;
+int thread_id = 0;
 
 boost::coroutines::symmetric_coroutine<void>::call_type *thread_arr[NUM_THREADS];
 
@@ -33,10 +42,31 @@ yield_func(boost::coroutines::symmetric_coroutine<void>::yield_type& yield)
  */
 void thread_func(boost::coroutines::symmetric_coroutine<void>::yield_type& yield)
 {
-	while(switch_i < NUM_SWITCHES) {
+	int switch_i = 0;
+
+	int var_1 = 0, var_2 = 0, var_3 = 0;
+	long long buf_1[1024] = {0};
+	long long buf_2[1024] = {0};
+	double fpu_checker = 0.0;
+
+	while(switch_i < NUM_SWITCHES_PER_THREAD) {
+		var_1++;
+		var_2 += var_1;
+	
+		buf_1[var_2 & 1023]++;
+		buf_2[var_2 & 511]++;
+		fpu_checker += buf_2[50];
+		var_3 += buf_1[111];
+
 		switch_i++;
+#if ENABLE_SWITCHING == 1
 		yield_func(yield);
+#endif
 	}
+
+	printf("var_1 = %d, var_2 = %d, buf_1[1023] = %lld, buf_2[511] = %lld\n "
+		"FPU checker = %f, var_3 = %d\n",
+		var_1, var_2, buf_1[1023], buf_2[1023], fpu_checker, var_3);
 }
 
 /*
@@ -62,7 +92,6 @@ void test(int is_fpu_enabled)
 	(*thread_arr[0])();
 
 	clock_gettime(CLOCK_REALTIME, &timer_end);
-	assert(switch_i == NUM_SWITCHES);
 	printf("Thread ID = %d\n", thread_id);	/* Prevent optimization */
 
 	double ns = (timer_end.tv_sec - timer_start.tv_sec) * 1000000000 +
@@ -86,11 +115,10 @@ int main()
 		sum += i * i;
 	}
 
-	printf("Testing with FPU enabled\n");
+	printf("\nTesting with FPU enabled\n");
 	test(FPU_ENABLE);
 
-	printf("Testing with FPU disabled\n");
-	switch_i = 0; 	/* Restart switches */
+	printf("\nTesting with FPU disabled\n");
 	test(FPU_DISABLE);
 
 	printf("sum = %d\n", sum);
