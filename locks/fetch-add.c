@@ -1,16 +1,39 @@
+/*
+ * Multiple threads issue fetch-add on a shared array of counters in different
+ * cachelines.
+ */
+
 #include<stdio.h>
 #include<stdlib.h>
 #include<pthread.h>
+#include<stdint.h>
+#include<assert.h>
 
-#define NUM_THREADS 4
+#define NUM_THREADS 14
+#define NUM_COUNTERS 128
+#define NUM_COUNTERS_ (NUM_COUNTERS - 1)
+
+/* @cnt is in separate cachelines, regardless of @counter_arr's alignment */
+struct counter {
+	long long cnt;
+	long long pad[7];
+};
 
 struct thread_params {
 	int tid;
-	long long *shared_counter;
+	struct counter *counter_arr;
 };
+
+inline uint32_t hrd_fastrand(uint64_t *seed)
+{
+    *seed = *seed * 1103515245 + 12345;
+    return (uint32_t) (*seed >> 32);
+}
 
 void *thread_func(void *ptr)
 {
+	uint64_t seed = 0xdeadbeef;
+
 	int iters = 0;
 	struct timespec start, end;
 	struct thread_params *params = (struct thread_params *) ptr;
@@ -33,7 +56,8 @@ void *thread_func(void *ptr)
 			clock_gettime(CLOCK_REALTIME, &start);
 		}
 
-		long long cur_cntr = __sync_fetch_and_add(params->shared_counter, 1);
+		int counter_i = hrd_fastrand(&seed) & NUM_COUNTERS_;
+		__sync_fetch_and_add(&params->counter_arr[counter_i].cnt, 1);
 
 		iters ++;
 	}
@@ -43,14 +67,15 @@ int main()
 {
 	int i;
 
-	long long shared_counter = 0;
-	struct thread_params param_arr[NUM_THREADS];
+	struct counter *counter_arr = malloc(NUM_COUNTERS * sizeof(struct counter));
+	assert(counter_arr != NULL);
 
+	struct thread_params param_arr[NUM_THREADS];
 	pthread_t thread[NUM_THREADS];
 	
 	for(i = 0; i < NUM_THREADS; i++) {
 		param_arr[i].tid = i;
-		param_arr[i].shared_counter = &shared_counter;
+		param_arr[i].counter_arr = counter_arr;
 		pthread_create(&thread[i], NULL, thread_func, &param_arr[i]);
 	}
 
