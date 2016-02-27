@@ -8,10 +8,11 @@
 #include<pthread.h>
 #include<stdint.h>
 #include<assert.h>
+#include<errno.h>
 
 #define NUM_THREADS 50
 
-#define NUM_ROWS (1024)
+#define NUM_ROWS (32 * 1024 * 1024)
 #define NUM_ROWS_ (NUM_ROWS - 1)
 
 #define NANO 1000000000
@@ -34,6 +35,20 @@ struct thread_params {
 };
 
 void *thread_function(void *ptr);
+
+int stick_this_thread_to_core(int core_id)
+{
+	int num_cores = 56;
+	if (core_id < 0 || core_id >= num_cores)
+		return EINVAL;
+
+	cpu_set_t cpuset;
+	CPU_ZERO(&cpuset);
+	CPU_SET(core_id, &cpuset);
+
+	pthread_t current_thread = pthread_self();    
+	return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+}
 
 int main()
 {
@@ -80,6 +95,8 @@ void *thread_function(void *ptr)
 {
 	struct thread_params params = *(struct thread_params *) ptr;
 	int tid = params.tid;
+	stick_this_thread_to_core(tid);
+
 	struct row_t *row_arr = params.row_arr;
 	double *tput = params.tput;
 
