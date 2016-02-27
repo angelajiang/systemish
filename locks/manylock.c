@@ -1,40 +1,65 @@
 /*
  * For small critical sections, spinlocks are the better choice.
  * Reason: pthread mutexes result in a context switch.
- **/
+ */
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
 #include<pthread.h>
+#include<stdint.h>
+#include<assert.h>
 
-#define NUM_THREADS 16
-#define NUM_LOCKS 1024
+#define NUM_THREADS 50
+
+#define NUM_ROWS (1024)
+#define NUM_ROWS_ (NUM_ROWS - 1)
 
 #define NANO 1000000000
+#define M_1 (1 * 1024 * 1024)
+#define M_1_ (M_1 - 1)
 
-struct CC {
-	pthread_spinlock_t lock;
-	long long pad[7];
+#define USE_SPINLOCK 1
+
+struct row_t {
+	pthread_spinlock_t spinlock;
+	pthread_mutex_t mutex_lock;
+	long long counter;
+	long long pad[1];
+};
+
+struct thread_params {
+	double *tput;
+	int tid;
+	struct row_t *row_arr;
 };
 
 void *thread_function(void *ptr);
 
-struct CC cc_array[NUM_LOCKS];
-
-main()
+int main()
 {
-	printf("%lu %lu\n", sizeof(struct CC), sizeof(pthread_spinlock_t));
 	int i;
-	for(i = 0; i < NUM_LOCKS; i++) {
-		pthread_spin_init(&cc_array[i].lock, 0);
+	printf("%lu\n", sizeof(struct row_t));
+	assert(sizeof(struct row_t) == 64);
+
+	struct row_t *row_arr = malloc(NUM_ROWS * sizeof(*row_arr));
+
+	for(i = 0; i < NUM_ROWS; i++) {
+		pthread_spin_init(&row_arr[i].spinlock, 0);
+		pthread_mutex_init(&row_arr[i].mutex_lock, NULL);
+		row_arr[i].counter = 0;
 	}
 	
-	int tid[NUM_THREADS];
+	double tput[NUM_THREADS];
+	struct thread_params params[NUM_THREADS];
 	pthread_t thread[NUM_THREADS];
 	
 	for(i = 0; i < NUM_THREADS; i++) {
-		tid[i] = i;
-		pthread_create(&thread[i], NULL, thread_function, &tid[i]);
+		params[i].tid = i;
+		params[i].row_arr = row_arr;
+		tput[i] = 0.0;
+		params[i].tput = tput;
+
+		pthread_create(&thread[i], NULL, thread_function, &params[i]);
 	}
 
 	for(i = 0; i < NUM_THREADS; i++) {
@@ -44,32 +69,64 @@ main()
 	exit(0);
 }
 
-void *thread_function( void *ptr)
+inline uint32_t
+hrd_fastrand(uint64_t *seed)
 {
-	int tid = *((int *) ptr);
-	printf("Starting tid: %d\nn", tid);
-	int iter = 0;
-	int SZ = 1024 * 1024 * 1024;
-	char *table = (char *) malloc(SZ);
-	memset(table, 1, SZ);
+    *seed = *seed * 1103515245 + 12345;
+    return (uint32_t) (*seed >> 32);
+}
+
+void *thread_function(void *ptr)
+{
+	struct thread_params params = *(struct thread_params *) ptr;
+	int tid = params.tid;
+	struct row_t *row_arr = params.row_arr;
+	double *tput = params.tput;
+
+	printf("Starting tid: %d\n", tid);
+
+	int iter = 0, i;
+	uint64_t seed = 0xdeadbeef;
+	for(i = 0; i < tid * 1000000; i++) {
+		hrd_fastrand(&seed);
+	}
 
 	struct timespec start, end;
 	clock_gettime(CLOCK_REALTIME, &start);
+
 	while(1) {
-		if(iter % 10000 == 0 && iter != 0) {
+		if((iter & M_1_) == 0 && iter != 0) {
 			clock_gettime(CLOCK_REALTIME, &end);
 			double seconds = (end.tv_sec - start.tv_sec) + 
 				((double) (end.tv_nsec - start.tv_nsec) / NANO);
-			printf("Thread %d, OPS = %f\n", tid, 1000000 / seconds);
+			double my_tput = M_1 / seconds;
+			tput[tid] = my_tput;
+
+			if(tid == 0) {
+				double total_tput = 0;
+				int t_i;
+				for(t_i = 0; t_i < NUM_THREADS; t_i++) {
+					total_tput += tput[tid];
+				}
+				printf("Total throughput (%d threads) = %.2f Mops\n",
+					NUM_THREADS, total_tput / 1000000);
+			}
+
 			clock_gettime(CLOCK_REALTIME, &start);
 		}
-		int lock_num = rand() % NUM_LOCKS;
-		pthread_spin_lock(&cc_array[lock_num].lock);
-		int i, sum = 0;
-		for(i = 0; i < 1; i++) {
-			sum += table[rand() % SZ];
-		}
-		pthread_spin_unlock(&cc_array[lock_num].lock);
+
+		int row_i = hrd_fastrand(&seed) & NUM_ROWS_;
+
+#if USE_SPINLOCK == 1
+		pthread_spin_lock(&row_arr[row_i].spinlock);
+		row_arr[row_i].counter++;
+		pthread_spin_unlock(&row_arr[row_i].spinlock);
+#else
+		pthread_mutex_lock(&row_arr[row_i].mutex_lock);
+		row_arr[row_i].counter++;
+		pthread_mutex_unlock(&row_arr[row_i].mutex_lock);
+#endif
+
 		iter ++;
 	}
 }
