@@ -20,7 +20,7 @@ int main()
 	int counter = 0;
 
 #if USE_MALLOC == 1
-	/* Malloc */
+	/* Malloc malloc malloc */
 	timer.start();
 
 	for(int i = 0; i < NUM_ITERS; i += NUM_MSG) {
@@ -29,7 +29,8 @@ int main()
 			counter += (j + 1) * (int) (uintptr_t) msg_arr[j];
 		}
 
-		for(int j = 0; j < NUM_MSG; j++) {
+		/* Freeing order does not matter much for malloc */
+		for(int j = NUM_MSG - 1; j >= 0; j--) {
 			free(msg_arr[j]);
 		}
 		
@@ -38,7 +39,7 @@ int main()
 	std::cout << "Malloc: " << timer.format() << "Counter: " << counter << "\n";
 #endif
 
-	/* Boost */
+	/* Boost boost boost */
 	timer.start();
 
 	for(int i = 0; i < NUM_ITERS; i += NUM_MSG) {
@@ -47,7 +48,8 @@ int main()
 			counter += (j + 1) * (int) (uintptr_t) msg_arr[j];
 		}
 
-		for(int j = 0; j < NUM_MSG; j++) {
+		/* Freeing order matters a LOT for boost pools */
+		for(int j = NUM_MSG - 1; j >= 0; j--) {
 			pool.free(msg_arr[j]);
 		}
 	}
