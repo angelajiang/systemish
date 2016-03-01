@@ -10,16 +10,16 @@
 #include<assert.h>
 #include<errno.h>
 
-#define NUM_THREADS 50
+#define NUM_THREADS 28
 
-#define NUM_ROWS (32 * 1024 * 1024)
+#define NUM_ROWS (1 * 1024 * 1024)
 #define NUM_ROWS_ (NUM_ROWS - 1)
 
 #define NANO 1000000000
 #define M_1 (1 * 1024 * 1024)
 #define M_1_ (M_1 - 1)
 
-#define USE_SPINLOCK 1
+#define USE_SPINLOCK 0
 
 struct row_t {
 	pthread_spinlock_t spinlock;
@@ -38,7 +38,7 @@ void *thread_function(void *ptr);
 
 int stick_this_thread_to_core(int core_id)
 {
-	int num_cores = 56;
+	int num_cores = 28;
 	if (core_id < 0 || core_id >= num_cores)
 		return EINVAL;
 
