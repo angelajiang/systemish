@@ -15,13 +15,13 @@ using namespace std;
 using namespace std::chrono;
 using namespace boost::coroutines;
 
-boost::coroutines::symmetric_coroutine<void>::call_type coro_arr[NUM_CORO];
+symmetric_coroutine<void>::call_type coro_arr[NUM_CORO];
 
 /*
  * The function executed by each coroutine. @switch_i represents the number of
  * switches executed until now.
  */
-void coro_func(boost::coroutines::symmetric_coroutine<void>::yield_type& yield,
+void coro_func(symmetric_coroutine<void>::yield_type& yield,
 	int coro_id)
 {
 	cout << "coro_func: In coroutine " << coro_id << endl;
@@ -60,16 +60,13 @@ void coro_func(boost::coroutines::symmetric_coroutine<void>::yield_type& yield,
 void test()
 {
 	auto timer_start = high_resolution_clock::now();
-	boost::coroutines::flag_fpu_t fpu_flag =
-		boost::coroutines::fpu_not_preserved;
+	flag_fpu_t fpu_flag = fpu_not_preserved;
 
 	/* Create @NUM_CORO coroutines */
 	for(int coro_i = 0; coro_i < NUM_CORO; coro_i++) {
 		cout << "test: Init coro " << coro_i << endl;
-		coro_arr[coro_i] =
-			boost::coroutines::symmetric_coroutine<void>::call_type(
-				boost::bind(coro_func, _1, coro_i),
-				boost::coroutines::attributes(fpu_flag));
+		coro_arr[coro_i] = symmetric_coroutine<void>::call_type(
+				bind(coro_func, _1, coro_i), attributes(fpu_flag));
 	}
 
 	/* Launch the 1st coroutine; this calls other coroutines later. */
