@@ -1,17 +1,19 @@
 #include <boost/coroutine/all.hpp>
 #include <iostream>
-#include <time.h>
+#include <chrono>
 
-#define NUM_THREADS 8
-#define NUM_THREADS_ 7
+#define NUM_CORO 8
+#define NUM_CORO_ 7
 
 #define NUM_SWITCHES_PER_THREAD 10000000	/* 10 million */
-#define NUM_SWITCHES (NUM_THREADS * NUM_SWITCHES_PER_THREAD)
+#define NUM_SWITCHES (NUM_CORO * NUM_SWITCHES_PER_THREAD)
 
+using namespace std;
+using namespace std::chrono;
 using namespace boost::coroutines;
 int coro_id = 0;
 
-boost::coroutines::symmetric_coroutine<void>::call_type *coro_arr[NUM_THREADS];
+boost::coroutines::symmetric_coroutine<void>::call_type *coro_arr[NUM_CORO];
 
 /*
  * The function executed by each coroutine. @switch_i represents the number of
@@ -37,11 +39,11 @@ void coro_func(boost::coroutines::symmetric_coroutine<void>::yield_type& yield)
 
 		switch_i++;
 
-		coro_id = (coro_id + 1) & (NUM_THREADS - 1);
+		coro_id = (coro_id + 1) & (NUM_CORO - 1);
 		yield(*coro_arr[coro_id]);
 	}
 
-	printf("var_1 = %d, var_2 = %d, buf_1[1023] = %lld, buf_2[511] = %lld\n "
+	printf("var_1 = %d, var_2 = %d, buf_1[1023] = %lld, buf_2[511] = %lld\n"
 		"FPU checker = %f, var_3 = %d\n",
 		var_1, var_2, buf_1[1023], buf_2[1023], fpu_checker, var_3);
 }
@@ -49,32 +51,29 @@ void coro_func(boost::coroutines::symmetric_coroutine<void>::yield_type& yield)
 /* Test coroutine switching performance. */
 void test()
 {
-	struct timespec timer_start, timer_end;
+	auto timer_start = high_resolution_clock::now();
 	boost::coroutines::flag_fpu_t fpu_flag =
 		boost::coroutines::fpu_not_preserved;
 
-	/* Create @NUM_THREADS coroutines */
-	for(int thr_i = 0; thr_i < NUM_THREADS; thr_i++) {
+	/* Create @NUM_CORO coroutines */
+	for(int thr_i = 0; thr_i < NUM_CORO; thr_i++) {
 		coro_arr[thr_i] =
 			new boost::coroutines::symmetric_coroutine<void>::call_type(
 				coro_func, boost::coroutines::attributes(fpu_flag));
 	}
 
-	clock_gettime(CLOCK_REALTIME, &timer_start);
-
 	/* Launch the 1st coroutine; this calls other coroutines later. */
 	(*coro_arr[0])();
 
-	clock_gettime(CLOCK_REALTIME, &timer_end);
-	printf("Thread ID = %d\n", coro_id);	/* Prevent optimization */
+	auto timer_end = high_resolution_clock::now();
+	printf("Coro ID = %d\n", coro_id);	/* Prevent optimization */
 
-	double ns = (timer_end.tv_sec - timer_start.tv_sec) * 1000000000 +
-		(double) (timer_end.tv_nsec - timer_start.tv_nsec);
-	printf("main: Time = %.2f ns, context switch time = %.2f ns, ",
-		ns, ns / NUM_SWITCHES);
+	auto ns = duration_cast<nanoseconds>(timer_end - timer_start).count();
+	cout << "main: Time =  " << ns << ", context switch time = " <<
+		ns / NUM_SWITCHES << " ns" << endl;
 
 	/* Destroy the coroutines. */
-	for(int thr_i = 0; thr_i < NUM_THREADS; thr_i++) {
+	for(int thr_i = 0; thr_i < NUM_CORO; thr_i++) {
 		delete coro_arr[thr_i];
 	}
 }
