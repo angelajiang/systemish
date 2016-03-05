@@ -56,8 +56,8 @@ void test()
 		boost::coroutines::fpu_not_preserved;
 
 	/* Create @NUM_CORO coroutines */
-	for(int thr_i = 0; thr_i < NUM_CORO; thr_i++) {
-		coro_arr[thr_i] =
+	for(int coro_i = 0; coro_i < NUM_CORO; coro_i++) {
+		coro_arr[coro_i] =
 			new boost::coroutines::symmetric_coroutine<void>::call_type(
 				coro_func, boost::coroutines::attributes(fpu_flag));
 	}
@@ -73,8 +73,8 @@ void test()
 		ns / NUM_SWITCHES << " ns" << endl;
 
 	/* Destroy the coroutines. */
-	for(int thr_i = 0; thr_i < NUM_CORO; thr_i++) {
-		delete coro_arr[thr_i];
+	for(int coro_i = 0; coro_i < NUM_CORO; coro_i++) {
+		delete coro_arr[coro_i];
 	}
 }
 
