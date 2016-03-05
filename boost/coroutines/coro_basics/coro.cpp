@@ -15,16 +15,15 @@ using namespace std;
 using namespace std::chrono;
 using namespace boost::coroutines;
 
-symmetric_coroutine<void>::call_type coro_arr[NUM_CORO];
-
 /*
  * The function executed by each coroutine. @switch_i represents the number of
  * switches executed until now.
  */
 void coro_func(symmetric_coroutine<void>::yield_type& yield,
-	int coro_id)
+	int coro_id, symmetric_coroutine<void>::call_type *coro_arr)
 {
-	cout << "coro_func: In coroutine " << coro_id << endl;
+	cout << "coro_func: In coroutine " << coro_id << ", coro_arr " <<
+		coro_arr << endl;
 	int switch_i = 0;
 
 	int var_1 = 0, var_2 = 0, var_3 = 0;
@@ -51,22 +50,32 @@ void coro_func(symmetric_coroutine<void>::yield_type& yield,
 		yield(coro_arr[next_coro_id]);
 	}
 
-	printf("var_1 = %d, var_2 = %d, buf_1[1023] = %lld, buf_2[511] = %lld\n"
-		"FPU checker = %f, var_3 = %d\n",
+	printf("coro %d: var_1 = %d, var_2 = %d, buf_1[1023] = %lld, "
+		"buf_2[511] = %lld\n"
+		"FPU checker = %f, var_3 = %d\n", coro_id,
 		var_1, var_2, buf_1[1023], buf_2[1023], fpu_checker, var_3);
 }
 
 /* Test coroutine switching performance. */
 void test()
 {
+	symmetric_coroutine<void>::call_type coro_arr[NUM_CORO];
+
 	auto timer_start = high_resolution_clock::now();
 	flag_fpu_t fpu_flag = fpu_not_preserved;
 
 	/* Create @NUM_CORO coroutines */
 	for(int coro_i = 0; coro_i < NUM_CORO; coro_i++) {
 		cout << "test: Init coro " << coro_i << endl;
+		/*
+		 * bind(coro_func, _1, coro_i, coro_arr) creates a function pointer
+		 * with the 1st argument of coro_func unbound, and the remaining two
+		 * arguments bound to coro_i and coro_arr respectively.
+		 *
+		 * Do not create a temporary loop variable to store the bound functor.
+		 */
 		coro_arr[coro_i] = symmetric_coroutine<void>::call_type(
-				bind(coro_func, _1, coro_i), attributes(fpu_flag));
+			bind(coro_func, _1, coro_i, coro_arr), attributes(fpu_flag));
 	}
 
 	/* Launch the 1st coroutine; this calls other coroutines later. */
