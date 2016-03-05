@@ -21,9 +21,9 @@
 #define SWITCH_IN_NON_INLINE 0
 
 using namespace boost::coroutines;
-int thread_id = 0;
+int coro_id = 0;
 
-boost::coroutines::symmetric_coroutine<void>::call_type *thread_arr[NUM_THREADS];
+boost::coroutines::symmetric_coroutine<void>::call_type *coro_arr[NUM_THREADS];
 
 #if SWITCH_IN_NON_INLINE == 1
 void __attribute__ ((noinline))
@@ -32,15 +32,15 @@ void
 #endif
 yield_func(boost::coroutines::symmetric_coroutine<void>::yield_type& yield)
 {
-	thread_id = (thread_id + 1) & (NUM_THREADS - 1);
-	yield(*thread_arr[thread_id]);
+	coro_id = (coro_id + 1) & (NUM_THREADS - 1);
+	yield(*coro_arr[coro_id]);
 }
 
 /*
  * The function executed by each coroutine. @switch_i represents the number of
  * switches executed until now.
  */
-void thread_func(boost::coroutines::symmetric_coroutine<void>::yield_type& yield)
+void coro_func(boost::coroutines::symmetric_coroutine<void>::yield_type& yield)
 {
 	int switch_i = 0;
 
@@ -81,18 +81,18 @@ void test(int is_fpu_enabled)
 
 	/* Create @NUM_THREADS coroutines */
 	for(int thr_i = 0; thr_i < NUM_THREADS; thr_i++) {
-		thread_arr[thr_i] =
+		coro_arr[thr_i] =
 			new boost::coroutines::symmetric_coroutine<void>::call_type(
-				thread_func, boost::coroutines::attributes(fpu_flag));
+				coro_func, boost::coroutines::attributes(fpu_flag));
 	}
 
 	clock_gettime(CLOCK_REALTIME, &timer_start);
 
 	/* Launch the 1st coroutine; this calls other coroutines later. */
-	(*thread_arr[0])();
+	(*coro_arr[0])();
 
 	clock_gettime(CLOCK_REALTIME, &timer_end);
-	printf("Thread ID = %d\n", thread_id);	/* Prevent optimization */
+	printf("Thread ID = %d\n", coro_id);	/* Prevent optimization */
 
 	double ns = (timer_end.tv_sec - timer_start.tv_sec) * 1000000000 +
 		(double) (timer_end.tv_nsec - timer_start.tv_nsec);
@@ -102,13 +102,13 @@ void test(int is_fpu_enabled)
 
 	/* Destroy the coroutines. */
 	for(int thr_i = 0; thr_i < NUM_THREADS; thr_i++) {
-		delete thread_arr[thr_i];
+		delete coro_arr[thr_i];
 	}
 }
 
 int main()
 {
-	/* Warm up the core (useful if power saving or turbo-boost is enabled) */
+	/* Warm up the core (useful if power saving or Turbo Boost is enabled) */
 	printf("Warming up\n");
 	int sum = 0;
 	for(int i = 0; i < 1000000000; i++) {
