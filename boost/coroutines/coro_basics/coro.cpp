@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <boost/bind.hpp>
 #include <boost/coroutine/all.hpp>
 #include <iostream>
@@ -9,11 +10,17 @@
 #define NUM_SWITCHES_PER_CORO 10000000	/* 10 million */
 #define NUM_SWITCHES (NUM_CORO * NUM_SWITCHES_PER_CORO)
 
-#define DEBUG 0
+#define DEBUG 1
 
 using namespace std;
 using namespace std::chrono;
 using namespace boost::coroutines;
+
+/* Check if we can unwind stack and debug inside coroutines */
+void buggy_func()
+{
+	assert(false);
+}
 
 /*
  * The function executed by each coroutine. @switch_i represents the number of
@@ -32,6 +39,12 @@ void coro_func(symmetric_coroutine<void>::yield_type& yield,
 	double fpu_checker = 0.0;
 
 	while(switch_i < NUM_SWITCHES_PER_CORO) {
+#if DEBUG == 1
+		if(switch_i == 1 && coro_id == 4) {
+			buggy_func();
+		}
+#endif
+
 		var_1++;
 		var_2 += var_1;
 	
@@ -43,10 +56,6 @@ void coro_func(symmetric_coroutine<void>::yield_type& yield,
 		switch_i++;
 
 		int next_coro_id = (coro_id + 1) & (NUM_CORO - 1);
-#if DEBUG == 1
-		cout << "coro_func: Switching from coro " << coro_id << " to " <<
-			next_coro_id << endl;
-#endif
 		yield(coro_arr[next_coro_id]);
 	}
 
@@ -93,7 +102,7 @@ int main()
 	/* Warm up the core (useful if power saving or Turbo Boost is enabled) */
 	printf("Warming up\n");
 	int sum = 0;
-	for(int i = 0; i < 1000000000; i++) {
+	for(int i = 0; i < 100000000; i++) {
 		sum += i * i;
 	}
 
