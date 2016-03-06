@@ -20,6 +20,8 @@
 #define M_1_ (M_1 - 1)
 
 #define USE_SPINLOCK 0
+#define USE_MUTEX 0
+#define USE_FETCH_ADD 1
 
 struct row_t {
 	pthread_spinlock_t spinlock;
@@ -52,6 +54,8 @@ int stick_this_thread_to_core(int core_id)
 
 int main()
 {
+	assert(USE_MUTEX + USE_SPINLOCK + USE_FETCH_ADD == 1);
+
 	int i;
 	printf("%lu\n", sizeof(struct row_t));
 	assert(sizeof(struct row_t) == 64);
@@ -138,10 +142,12 @@ void *thread_function(void *ptr)
 		pthread_spin_lock(&row_arr[row_i].spinlock);
 		row_arr[row_i].counter++;
 		pthread_spin_unlock(&row_arr[row_i].spinlock);
-#else
+#elif USE_MUTEX == 1
 		pthread_mutex_lock(&row_arr[row_i].mutex_lock);
 		row_arr[row_i].counter++;
 		pthread_mutex_unlock(&row_arr[row_i].mutex_lock);
+#elif USE_FETCH_ADD == 1
+		__sync_fetch_and_add(&row_arr[row_i].counter, 1);
 #endif
 
 		iter ++;
