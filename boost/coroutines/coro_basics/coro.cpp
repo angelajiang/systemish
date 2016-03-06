@@ -10,11 +10,14 @@
 #define NUM_SWITCHES_PER_CORO 10000000	/* 10 million */
 #define NUM_SWITCHES (NUM_CORO * NUM_SWITCHES_PER_CORO)
 
-#define DEBUG 1
+#define DEBUG 0
 
 using namespace std;
 using namespace std::chrono;
 using namespace boost::coroutines;
+
+typedef symmetric_coroutine<void>::call_type call_type;
+typedef symmetric_coroutine<void>::yield_type yield_type;
 
 /* Check if we can unwind stack and debug inside coroutines */
 void buggy_func()
@@ -26,8 +29,7 @@ void buggy_func()
  * The function executed by each coroutine. @switch_i represents the number of
  * switches executed until now.
  */
-void coro_func(symmetric_coroutine<void>::yield_type& yield,
-	int coro_id, symmetric_coroutine<void>::call_type *coro_arr)
+void coro_func(yield_type &yield, int coro_id, call_type *coro_arr)
 {
 	cout << "coro_func: In coroutine " << coro_id << ", coro_arr " <<
 		coro_arr << endl;
@@ -68,7 +70,7 @@ void coro_func(symmetric_coroutine<void>::yield_type& yield,
 /* Test coroutine switching performance. */
 void test()
 {
-	symmetric_coroutine<void>::call_type coro_arr[NUM_CORO];
+	call_type coro_arr[NUM_CORO];
 
 	auto timer_start = high_resolution_clock::now();
 	flag_fpu_t fpu_flag = fpu_not_preserved;
