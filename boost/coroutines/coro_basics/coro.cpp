@@ -85,8 +85,8 @@ void test()
 		 *
 		 * Do not create a temporary loop variable to store the bound functor.
 		 */
-		coro_arr[coro_i] = symmetric_coroutine<void>::call_type(
-			bind(coro_func, _1, coro_i, coro_arr), attributes(fpu_flag));
+		coro_arr[coro_i] = call_type(bind(coro_func, _1, coro_i, coro_arr),
+			attributes(fpu_flag));
 	}
 
 	/* Launch the 1st coroutine; this calls other coroutines later. */
