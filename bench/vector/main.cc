@@ -43,7 +43,7 @@ int main()
 	
 	for(iter = 0; iter < ITERS; iter++) {
 		for(int i = 0; i < SIZE; i++) {
-			tV.push_back(iter + i);
+			tV.push_back(tV[i] + 1);	/* This is bad, but it's fine here. */
 		}
 
 		asm volatile("" ::: "memory");
