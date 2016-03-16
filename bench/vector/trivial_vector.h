@@ -32,7 +32,7 @@ public:
 		assert(_capacity >= 1);
 
 		arr = new T[_capacity];
-		index = 0;
+		index = 0;	/* @index is the current empty slot */
 		capacity = _capacity;
 	}
 
@@ -46,6 +46,12 @@ public:
 		trivial_vector_dassert(index < capacity);
 		arr[index] = t;
 		index++;
+	}
+
+	inline T operator [] (int i)
+	{
+		trivial_vector_dassert(i < index);
+		return arr[i];
 	}
 
 	inline int size()

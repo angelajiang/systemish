@@ -47,7 +47,7 @@ int main()
 		 * Do this once every @SIZE time to save preciousssss cycles.
 		 */
 		int rand_index = hrd_fastrand(&seed) & SIZE_;
-		sum += tV.arr[rand_index];
+		sum += tV[rand_index];
 		tV.clear();
 	}
 
