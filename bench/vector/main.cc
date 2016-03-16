@@ -3,11 +3,13 @@
 #include<vector>
 #include<time.h>
 #include<assert.h>
+#include<stdint.h>
 
 #include "trivial_vector.h"
 
 #define ITERS 10000000	/* 10 million */
-#define SIZE 16
+#define SIZE 256
+#define SIZE_ (SIZE - 1)
 
 /*
  * Time per push_back:
@@ -15,8 +17,17 @@
  */
 using namespace std;
 
+static inline uint32_t hrd_fastrand(uint64_t *seed)
+{
+    *seed = *seed * 1103515245 + 12345;
+    return (uint32_t) (*seed >> 32);
+}
+
 int main()
 {
+	uint64_t seed = 0xdeadbeef;
+
+	int sum = 0;
 	int iter;
 	struct timespec start, end;
 	double nanoseconds;
@@ -26,10 +37,17 @@ int main()
 	tV.init(SIZE);
 	clock_gettime(CLOCK_REALTIME, &start);
 	
-	for(iter = 0; iter < 100000000; iter++) {
+	for(iter = 0; iter < ITERS; iter++) {
 		for(int i = 0; i < SIZE; i++) {
-			tV.push_back(i);
+			tV.push_back(iter + i);
 		}
+
+		/*
+		 * Access a random array element to prevent any compiler tricks.
+		 * Do this once every @SIZE time to save preciousssss cycles.
+		 */
+		int rand_index = hrd_fastrand(&seed) & SIZE_;
+		sum += tV.arr[rand_index];
 		tV.clear();
 	}
 
@@ -38,7 +56,8 @@ int main()
 	nanoseconds = (end.tv_sec - start.tv_sec) * 1000000000 + 
 		(end.tv_nsec - start.tv_nsec);
 
-	printf("Time per push_back = %f ns\n", nanoseconds / (iter * SIZE));
+	printf("Time per push_back = %f ns, sum = %d\n",
+		nanoseconds / ((long long) iter * SIZE), sum);
 
 	// Std vector
 	std::vector<int> V;
@@ -56,6 +75,7 @@ int main()
 	nanoseconds = (end.tv_sec - start.tv_sec) * 1000000000 + 
 		(end.tv_nsec - start.tv_nsec);
 
-	printf("Time per push_back = %f ns\n", nanoseconds / (iter * SIZE));
+	printf("Time per push_back = %f ns\n",
+		nanoseconds / ((long long) iter * SIZE));
 
 }

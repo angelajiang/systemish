@@ -9,7 +9,7 @@
 
 #include<assert.h>
 
-#define TRIVIAL_VECTOR_DEBUG_ASSERT 1
+#define TRIVIAL_VECTOR_DEBUG_ASSERT 0
 #define trivial_vector_dassert(x) \
 	do { if(TRIVIAL_VECTOR_DEBUG_ASSERT) assert(x); } while (0)
 
@@ -58,7 +58,6 @@ public:
 		index = 0;
 	}
 
-private:
 	T* arr;
 	int index;
 	int capacity;
