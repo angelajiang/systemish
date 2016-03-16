@@ -11,6 +11,9 @@
 #define SIZE 256
 #define SIZE_ (SIZE - 1)
 
+#define STD 0
+#define TRIVIAL 1
+
 /*
  * Time per push_back:
  * 1. E5-2683-v3 at 3 GHz: std::vector: 1.99 ns, trivial_vector: .2 ns
@@ -32,9 +35,10 @@ int main()
 	struct timespec start, end;
 	double nanoseconds;
 
+#if TRIVIAL == 1
 	// Trivial vector
 	trivial_vector<int> tV;
-	tV.init(SIZE);
+	tV.init(2, SIZE);
 	clock_gettime(CLOCK_REALTIME, &start);
 	
 	for(iter = 0; iter < ITERS; iter++) {
@@ -42,9 +46,11 @@ int main()
 			tV.push_back(iter + i);
 		}
 
+		asm volatile("" ::: "memory");
+
 		/*
 		 * Access a random array element to prevent any compiler tricks.
-		 * Do this once every @SIZE time to save preciousssss cycles.
+		 * Do this once every @SIZE time to save cycles.
 		 */
 		int rand_index = hrd_fastrand(&seed) & SIZE_;
 		sum += tV[rand_index];
@@ -56,9 +62,11 @@ int main()
 	nanoseconds = (end.tv_sec - start.tv_sec) * 1000000000 + 
 		(end.tv_nsec - start.tv_nsec);
 
-	printf("Time per push_back = %f ns, sum = %d\n",
+	printf("Time per push_back (trivial vector) = %f ns, sum = %d\n",
 		nanoseconds / ((long long) iter * SIZE), sum);
+#endif
 
+#if STD == 1
 	// Std vector
 	std::vector<int> V;
 	V.reserve(SIZE);
@@ -75,7 +83,7 @@ int main()
 	nanoseconds = (end.tv_sec - start.tv_sec) * 1000000000 + 
 		(end.tv_nsec - start.tv_nsec);
 
-	printf("Time per push_back = %f ns\n",
+	printf("Time per push_back (std::vector) = %f ns\n",
 		nanoseconds / ((long long) iter * SIZE));
-
+#endif
 }

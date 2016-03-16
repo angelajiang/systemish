@@ -8,6 +8,7 @@
 #define TRIVIAL_VECTOR_H
 
 #include<assert.h>
+#include<stdio.h>
 
 #define TRIVIAL_VECTOR_DEBUG_ASSERT 0
 #define trivial_vector_dassert(x) \
@@ -25,7 +26,7 @@ public:
 	}
 
 	/* Actual constructor */
-	void init(int _capacity)
+	void init(int _id, int _capacity)
 	{
 		/* Only initialized once */
 		assert(arr == NULL && index == -1 && capacity == -1);
@@ -34,10 +35,13 @@ public:
 		arr = new T[_capacity];
 		index = 0;	/* @index is the current empty slot */
 		capacity = _capacity;
+		id = _id;
 	}
 
 	~trivial_vector()
 	{
+		// XXX: this line:
+		//printf("Destroying trivial vector %d\n", id);
 		delete[] arr;
 	}
 
@@ -67,6 +71,7 @@ public:
 	T* arr;
 	int index;
 	int capacity;
+	int id;	/* Id of this vector */
 };
 
 #endif /* TRIVIAL_VECTOR_H */
