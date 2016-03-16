@@ -42,9 +42,11 @@ int main()
 	clock_gettime(CLOCK_REALTIME, &start);
 	
 	for(iter = 0; iter < ITERS; iter++) {
+		//asm("xxx");
 		for(int i = 0; i < SIZE; i++) {
-			tV.push_back(tV[i] + 1);	/* This is bad, but it's fine here. */
+			tV.push_back(iter + i);	/* This is bad, but it's fine here. */
 		}
+		//asm("xxx");
 
 		asm volatile("" ::: "memory");
 
