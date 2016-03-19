@@ -2,40 +2,48 @@
 #include<stdlib.h>
 #include<string.h>
 #include<time.h>
+#include<assert.h>
+#include <papi.h>
 
-#define NUM_PKTS (256 * 1024 * 1024)
-#define NUM_LONGS 10
+#define ITERS (32 * 1024 * 1024)
 
 int main(int argc, char **argv)
 {
-	printf("Starting computing hashes\n");
-	struct timespec start, end;
-	clock_gettime(CLOCK_REALTIME, &start);
-
-	long long sum = 0;
-	int i = 0, j = 0;
-	long long A[NUM_LONGS] = {0};
-	long long B[NUM_LONGS] = {0};
-
-	for(i = 0; i < NUM_PKTS; i ++) {
-		memcpy(B, A, NUM_LONGS * sizeof(long long));
-		memcpy(A, B, NUM_LONGS * sizeof(long long));
+	if(argc < 2) {
+		printf("./bench <memcpy size>\n");
+		exit(-1);
 	}
 
-	// GCC is so clever, so print all
-	for(j = 0; j < NUM_LONGS; j++) {
-		printf("%lld\n", A[j]);
+	/* Variables for PAPI */
+	float real_time, proc_time, ipc;
+	long long ins;
+	int retval;
+
+	/* Init PAPI */
+	if((retval = PAPI_ipc(&real_time, &proc_time, &ins, &ipc)) < PAPI_OK) {    
+		printf("PAPI error: retval: %d\n", retval);
+		return -1;
 	}
 
-	clock_gettime(CLOCK_REALTIME, &end);
+	int size = atoi(argv[1]);
 
-	double seconds = (end.tv_sec - start.tv_sec) + 
-		(double) (end.tv_nsec - start.tv_nsec) / 1000000000;
-	double nanoseconds = (end.tv_sec - start.tv_sec) * 1000000000 + 
-		(end.tv_nsec - start.tv_nsec);
+	volatile long long *A = malloc(size);
+	volatile long long *B = malloc(size);
 
-	printf("Time = %f, time per memcpy = %f ns, sum = %lld\n", 
-		seconds, nanoseconds / (NUM_PKTS * 2), sum);
+	int i;
+	for(i = 0; i < ITERS; i ++) {
+		memcpy((void *) B, (void *) A, size);
+		memcpy((void *) A, (void *) B, size);
+	}
+
+	retval = PAPI_ipc(&real_time, &proc_time, &ins, &ipc);
+	if(retval < PAPI_OK) {    
+		printf("PAPI error: retval: %d\n", retval);
+		return -1;
+	}
+
+	printf("Time per memcpy = %f ns, instructions per memcpy = %lld, IPC = %.2f\n", 
+		(real_time * 1000000000) / (ITERS * 2), ins / (ITERS * 2), ipc);
 
 	return 0;
 }
