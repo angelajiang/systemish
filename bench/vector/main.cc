@@ -11,7 +11,7 @@
 #define SIZE 256
 #define SIZE_ (SIZE - 1)
 
-#define STD 0
+#define STD 1
 #define TRIVIAL 1
 
 /*

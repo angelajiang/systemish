@@ -41,7 +41,7 @@ public:
 	~trivial_vector()
 	{
 		// XXX: this line:
-		//printf("Destroying trivial vector %d\n", id);
+		printf("Destroying trivial vector %d\n", id);
 		delete[] arr;
 	}
 
