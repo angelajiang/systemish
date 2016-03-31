@@ -91,3 +91,6 @@ endfunction
 :inoremap <Tab> <C-R>=Tab_Or_Complete()<CR>
 :set dictionary="/usr/dict/words"
 
+set statusline+=%F
+set laststatus=2
+
