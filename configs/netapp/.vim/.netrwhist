@@ -1,8 +1,0 @@
-let g:netrw_dirhistmax  =10
-let g:netrw_dirhist_cnt =6
-let g:netrw_dirhist_1='/usr0/home/akalia/ML/ML/project/output'
-let g:netrw_dirhist_2='/usr0/home/akalia/sandbox/snort-2.9.7.0/rules'
-let g:netrw_dirhist_3='/usr0/home/akalia/fastpp/data_dump/snort'
-let g:netrw_dirhist_4='/usr0/home/akalia/sandbox/moly/services/dpi/dpi-fp'
-let g:netrw_dirhist_5='/etc/apache2'
-let g:netrw_dirhist_6='/afs/cs.cmu.edu/user/akalia/www/740'
