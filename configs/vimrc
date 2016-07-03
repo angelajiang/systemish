@@ -89,7 +89,8 @@ function! Tab_Or_Complete()
   endif
 endfunction
 :inoremap <Tab> <C-R>=Tab_Or_Complete()<CR>
-:set dictionary="/usr/dict/words"
+"Do not search included boost headers
+set include=^\\s*#\\s*include\ \\(<boost/\\)\\@!
 
 set statusline+=%F
 set laststatus=2
