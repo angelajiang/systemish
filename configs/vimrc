@@ -89,9 +89,16 @@ function! Tab_Or_Complete()
   endif
 endfunction
 :inoremap <Tab> <C-R>=Tab_Or_Complete()<CR>
-"Do not search included boost headers
+
+"Do not search included boost headers during Tab completion
 set include=^\\s*#\\s*include\ \\(<boost/\\)\\@!
 
 set statusline+=%F
 set laststatus=2
+
+"Ignore whitespace im vimdiff
+if &diff
+    " diff mode
+    set diffopt+=iwhite
+endif
 
