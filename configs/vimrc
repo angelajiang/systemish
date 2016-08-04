@@ -23,7 +23,6 @@ endif
 
 " If using a dark background within the editing area and syntax highlighting
 " turn on this option as well
-set background=dark
 
 " Uncomment the following to have Vim jump to the last position when
 " reopening a file
@@ -62,7 +61,9 @@ filetype on
 au BufNewFile,BufRead *.ispc set filetype=c
 au BufNewFile,BufRead *.pg set filetype=gnuplot
 
-colorscheme felek
+colorscheme apprentice
+set background=light
+hi Comment ctermfg=Blue
 
 let &colorcolumn=join(range(81,81),",")
 highlight ColorColumn ctermbg=235 guibg=#2c2d27
