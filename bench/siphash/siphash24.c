@@ -109,7 +109,17 @@ siphash_2_4(const unsigned char *in, size_t inlen, const unsigned char *k)
 }
 
 #define NUM_PKTS (16 * 1024 * 1024)
-#define NUM_LONGS 1
+#define NUM_LONGS 16
+
+static inline long long hrd_get_cycles()
+{
+	unsigned low, high;
+	unsigned long long val;
+	asm volatile ("rdtsc" : "=a" (low), "=d" (high));
+	val = high;
+	val = (val << 32) | low;
+	return val;
+}
 
 int main()
 {
@@ -122,13 +132,25 @@ int main()
 	long long A[NUM_LONGS];
 
 	for(i = 0; i < NUM_PKTS; i ++) {
+		// Initialize the array to compute the hash off
 		for(j = 0; j < NUM_LONGS; j ++) {
 			A[j] = 0xffffffffffffffffL + i;
 		}
 
+		// Do useless computation
+		int useless = 0;
+		for(useless = 0; useless < 1000000000; useless++) {
+			sum += (sum + i + useless) * (sum + i + useless);
+		}
+
+		// Compute the hash
+		long long start_cycles = hrd_get_cycles() + (sum & 1);
 		sum += siphash_2_4((char *) A, 
 			NUM_LONGS * sizeof(long long),
 			(char *) &key);		/**< siphash is a keyed hash function */
+
+		long long end_cycles = hrd_get_cycles() + (sum & 1);
+		printf("%lld\n", end_cycles - start_cycles);
 	}
 
 	clock_gettime(CLOCK_REALTIME, &end);
