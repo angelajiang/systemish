@@ -1,20 +1,17 @@
 alias ls='ls --color'
-alias src='source ~/.bash_profile'
+alias src='source ~/.bashrc'
 alias gitd='git difftool'
 alias gtid='git difftool'
 alias gitshort='git rev-parse --short HEAD'
 alias sc='screen -dRR'
+alias co='cd ~/infiniband/doc/papers/osdi16/'
 
 # Avoid duplicates in bash history
 export HISTCONTROL=ignoreboth:erasedups
 
-# CUDA
-export PATH=$PATH:/usr/local/cuda/bin/
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64/
-
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
-PATH=$PATH:/users/akalia/systemish/scripts
+PATH=$PATH:/home/akalia/systemish/scripts
 export PATH
 
 function a() {
