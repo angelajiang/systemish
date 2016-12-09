@@ -9,20 +9,94 @@ alias ls='ls --color'
 alias src='source ~/.bash_profile'
 alias gitd='git difftool'
 alias gtid='git difftool'
+alias gti='git'
 alias gitshort='git rev-parse --short HEAD'
 alias sc='screen -dRR'
+alias cdx='cd ~/accelio/src/usr/xio/'
+
+# Avoid duplicates in bash history
+export HISTCONTROL=ignoreboth:erasedups
 
 PATH=$PATH:/home/anuj/systemish/scripts
+PATH=$PATH:/home/anuj/bin/
 export PATH
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
 alias zstyle='astyle --style=kr --indent=tab --pad-oper --unpad-paren --add-brackets'
 
-LS_COLORS='di=36:fi=0:ln=31:pi=5:so=5:bd=5:cd=5:or=31:mi=0:ex=35:*.rpm=90'
+# Make object files (*.o and *.lo) grey
+LS_COLORS='di=36:fi=0:ln=31:pi=5:so=5:bd=5:cd=5:or=31:mi=0:ex=35:*.rpm=90:*.o=90;40:*.lo=90;40'
 export LS_COLORS
 
 export HRD_REGISTRY_IP="192.168.1.49"
 
 # To show IP address in bash prompt
 # export PS1="[\u@`ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1' | head -1`] \W$ "
+
+
+#
+# Functions
+#
+
+function a() {
+	ssh akaliaNode-$1.RDMA.fawn.apt.emulab.net
+}
+
+# Remove SHM regions
+function drop_shm()                                                                 
+{                                                                                   
+    echo "Dropping SHM entries"                                                     
+                                                                                    
+    for i in $(ipcs -m | awk '{ print $1; }'); do                                   
+        if [[ $i =~ 0x.* ]]; then                                                   
+            sudo ipcrm -M $i 2>/dev/null                                            
+        fi                                                                          
+    done                                                                            
+}    
+
+function maketar() { tar cvzf "${1%%/}.tar.gz"  "${1%%/}/"; }
+
+# Grep
+function zgrep()
+{
+  if [ "$#" -ne 1 ]; then
+    echo "zgrep: Illegal number of parameters"
+  else
+	  grep -rnIi "$1" . --color
+  fi
+}
+
+# Extract any archive
+function extract {
+ if [ -z "$1" ]; then
+    # display usage if no parameters given
+    echo "Usage: extract <path/file_name>.<zip|rar|bz2|gz|tar|tbz2|tgz|Z|7z|xz|ex|tar.bz2|tar.gz|tar.xz>"
+ else
+    if [ -f $1 ] ; then
+        # NAME=${1%.*}
+        # mkdir $NAME && cd $NAME
+        case $1 in
+          *.tar.bz2)   tar xvjf $1    ;;
+          *.tar.gz)    tar xvzf $1    ;;
+          *.tar.xz)    tar xvJf $1    ;;
+          *.lzma)      unlzma $1      ;;
+          *.bz2)       bunzip2 $1     ;;
+          *.rar)       unrar x -ad $1 ;;
+          *.gz)        gunzip $1      ;;
+          *.tar)       tar xvf $1     ;;
+          *.tbz2)      tar xvjf $1    ;;
+          *.tgz)       tar xvzf $1    ;;
+          *.zip)       unzip $1       ;;
+          *.Z)         uncompress $1  ;;
+          *.7z)        7z x $1        ;;
+          *.xz)        unxz $1        ;;
+          *.exe)       cabextract $1  ;;
+          *)           echo "extract: '$1' - unknown archive method" ;;
+        esac
+    else
+        echo "$1 - file does not exist"
+    fi
+fi
+}
+
