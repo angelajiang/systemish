@@ -7,7 +7,7 @@
 #include <papi.h>
 #include "rte_memcpy.h"
 
-#define ITERS (64 * 1024 * 1024)
+#define ITERS (64)
 
 #define TEST_DPDK_MEMCPY_CORRECTNESS 0
 #define USE_GLIBC_ALIGN 0
@@ -121,8 +121,11 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	printf("%d \t %.2f \t %.2f\n", size, (real_time * 1000000000) / (ITERS * 2),
-		(double) ins / (ITERS * 2));
+	float ns_per_memcpy = (real_time * 1000000000) / (ITERS * 2);
+	float ins_per_memcpy = (double) ins / (ITERS * 2);
+	printf("Time to copy %d bytes = %.2f ns. Instructions = %.2f. IPC = %.2f. "
+		"memcpy bandwidth = %.2f GB/s\n",
+		size, ns_per_memcpy, ins_per_memcpy, ipc, size / ns_per_memcpy);
 
 	return 0;
 }
