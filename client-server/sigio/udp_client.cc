@@ -54,10 +54,12 @@ class udp_client {
 };
 
 int main() {
-  udp_client c("localhost", 3490);
+  udp_client c("128.2.211.34", 3490);
 
-  for (int i = 0; i < 100; i++) {
-    c.send("1234", 4);
+  for (int i = 0; i < 100000; i++) {
+    char buf[100];
+    sprintf(buf, "packet-%d", i);
+    c.send(buf, strlen(buf));
     usleep(200000);
   }
 }
