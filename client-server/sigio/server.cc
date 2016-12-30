@@ -77,14 +77,17 @@ int main() {
     exit(1);
   }
 
-  /* Set up a SIGIO signal handler */
-  signal(SIGIO, io_handler);
+  /* Set file flags. Allow receipt of asynchronous I/O signals */
+  if (fcntl(sock_fd, F_SETFL, O_ASYNC | O_NONBLOCK) < 0) {
+    perror("Error: fcntl F_SETFL, FASYNC");
+    exit(1);
+  }
 
 #if DELIVER_TO_MAIN == 1
   /* Ensure that only the main thread receives SIGIO */
   struct f_owner_ex owner_thread;
   owner_thread.type = F_OWNER_TID;
-  owner_thread.pid = gettid();
+  owner_thread.pid = (int)gettid();
 
   if (fcntl(sock_fd, F_SETOWN_EX, &owner_thread) < 0) {
     perror("Error: fcntl F_SETOWN_EX");
@@ -97,11 +100,8 @@ int main() {
   }
 #endif
 
-  /* Set file flags. Allow receipt of asynchronous I/O signals */
-  if (fcntl(sock_fd, F_SETFL, O_ASYNC) < 0) {
-    perror("Error: fcntl F_SETFL, FASYNC");
-    exit(1);
-  }
+  /* Set up a SIGIO signal handler **after** setting owner thread */
+  signal(SIGIO, io_handler);
 
   /* Launch the secondary thread */
   std::thread secondary_thread(secondary);
@@ -121,22 +121,30 @@ int main() {
 }
 
 void io_handler(int signal) {
-  int numbytes;                  /* Number of bytes recieved from client */
-  uint32_t addr_len;             /* Address size of the sender		*/
-  struct sockaddr_in their_addr; /* Connector's address information	*/
-  char buf[MAXBUFLEN];           /* The buffer to receive the data into */
+  ((void)(signal));
+
+  uint32_t addr_len = sizeof(struct sockaddr_in); /* Addr size of the sender */
+  struct sockaddr_in their_addr; /* Sender's address information	*/
+  char buf[MAXBUFLEN]; /* The buffer to receive the data into */
+  memset((void *)buf, 0, MAXBUFLEN);
 
   printf("\n%s: io_handler() calling recv_from().\n", thread_name->c_str());
 
-  if ((numbytes = recvfrom(sock_fd, buf, MAXBUFLEN, 0,
-                           (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-    printf("%s: recvfrom() error\n", thread_name->c_str());
-    exit(1);
-  }
+  ssize_t recv_bytes;
 
-  buf[numbytes] = '\0';
-  counter++;
-  printf("%s: io_handler got from %s: %s. Setting counter = %d\n",
-         thread_name->c_str(), inet_ntoa(their_addr.sin_addr), buf, counter);
+  do {
+    recv_bytes = recvfrom(sock_fd, buf, MAXBUFLEN, 0,
+                          (struct sockaddr *)&their_addr, &addr_len);
+    if (recv_bytes < 0) {
+      printf("%s: recvfrom() error. numbytes = %zd\n", thread_name->c_str(),
+             recv_bytes);
+    }
+
+    buf[recv_bytes] = '\0';
+    counter++;
+    printf("%s: io_handler got from %s: %s. Setting counter = %d\n",
+           thread_name->c_str(), inet_ntoa(their_addr.sin_addr), buf, counter);
+  } while(recv_bytes > 0);
+
   return;
 }

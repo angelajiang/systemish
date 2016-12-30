@@ -13,6 +13,8 @@ alias gti='git'
 alias gitshort='git rev-parse --short HEAD'
 alias sc='screen -dRR'
 alias cdx='cd ~/accelio/src/usr/xio/'
+alias moo='ssh akalia@moo.cmcl.cs.cmu.edu'
+alias cmu='ssh akalia@linux.gp.cs.cmu.edu'
 
 # Avoid duplicates in bash history
 export HISTCONTROL=ignoreboth:erasedups
