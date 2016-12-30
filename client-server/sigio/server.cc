@@ -35,14 +35,8 @@ void secondary() {
   printf("secondary thread. gettid: %ld\n", gettid());
   thread_name = new std::string("secondary");
 
-  int prev_counter = 0;
-  for (;;) {
-    while (prev_counter == counter) {
-      // Busy wait
-    }
-
-    // printf("secondary thread: Counter changed to %d\n", counter);
-    prev_counter = counter;
+  while (true) {
+    // Busy wait
   }
 }
 
@@ -107,14 +101,8 @@ int main() {
   std::thread secondary_thread(secondary);
 
   /* The main code */
-  int prev_counter = 0;
-  for (;;) {
-    while (prev_counter == counter) {
-      // Busy wait
-    }
-
-    // printf("main: Counter changed to %d\n", counter);
-    prev_counter = counter;
+  while (true) {
+    // Busy wait
   }
 
   secondary_thread.join();
@@ -123,28 +111,35 @@ int main() {
 void io_handler(int signal) {
   ((void)(signal));
 
-  uint32_t addr_len = sizeof(struct sockaddr_in); /* Addr size of the sender */
-  struct sockaddr_in their_addr; /* Sender's address information	*/
-  char buf[MAXBUFLEN]; /* The buffer to receive the data into */
+  uint32_t addr_len = sizeof(struct sockaddr_in); /* This is required!! */
+  struct sockaddr_in their_addr; /* Sender's address information goes here */
+
+  char buf[MAXBUFLEN]; /* Received data goes here */
   memset((void *)buf, 0, MAXBUFLEN);
 
   printf("\n%s: io_handler() calling recv_from().\n", thread_name->c_str());
 
-  ssize_t recv_bytes;
+  /*
+   * Another way to go about this would be to call recvfrom() repeatedly until
+   * we get an EAGAIN/EWOULDBLOCK. That can sometimes result in processing
+   * multiple packets (say N) in one invocation of the signal handler, but then
+   * the (N - 1) subsequent invocations of the signal handler result in no
+   * packets being received. i.e., the kernel generates signals for packets
+   * that we already consumed in the first signal handler invocation.
+   */
+  ssize_t recv_bytes = recvfrom(sock_fd, buf, MAXBUFLEN, 0,
+                                (struct sockaddr *)&their_addr, &addr_len);
 
-  do {
-    recv_bytes = recvfrom(sock_fd, buf, MAXBUFLEN, 0,
-                          (struct sockaddr *)&their_addr, &addr_len);
-    if (recv_bytes < 0) {
-      printf("%s: recvfrom() error. numbytes = %zd\n", thread_name->c_str(),
-             recv_bytes);
-    }
+  if (recv_bytes < 0) {
+    printf("%s: Fatal error [%s] in recvfrom(). numbytes = %zd\n",
+           thread_name->c_str(), strerror(errno), recv_bytes);
+    exit(-1);
+  }
 
-    buf[recv_bytes] = '\0';
-    counter++;
-    printf("%s: io_handler got from %s: %s. Setting counter = %d\n",
-           thread_name->c_str(), inet_ntoa(their_addr.sin_addr), buf, counter);
-  } while(recv_bytes > 0);
+  buf[recv_bytes] = '\0';
+  counter++;
+  printf("%s: io_handler got from %s: %s. Setting counter = %d\n",
+         thread_name->c_str(), inet_ntoa(their_addr.sin_addr), buf, counter);
 
   return;
 }
