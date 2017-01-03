@@ -60,7 +60,7 @@ int main() {
    * machine (INADDR_ANY), and to port @my_port.
    */
   struct sockaddr_in server;
-  memset(&server, 0, sizeof(struct sockaddr_in));
+  memset(&server, 0, sizeof(server));
   server.sin_family = AF_INET;
   server.sin_addr.s_addr = INADDR_ANY;
   server.sin_port = htons(my_port);
@@ -94,8 +94,20 @@ int main() {
   }
 #endif
 
-  /* Set up a SIGIO signal handler **after** setting owner thread */
-  signal(SIGIO, io_handler);
+  /*
+   * Set up a SIGIO signal handler **after** fixing the thread that will
+   * receive this signal. The sigaction man page specifies that calling
+   * sigaction without SA_NODEFER set ensures that the signal handler won't
+   * be interrupted by the same signal while it is running. It may be
+   * interrupted by other signals, however.
+   */
+  struct sigaction act;
+  memset((void *)&act, 0, sizeof(act));
+  act.sa_handler = &io_handler;
+  if (sigaction(SIGIO, &act, NULL) < 0) { /* Old signal handler is NULL */
+    perror("sigaction");
+    exit(-1);
+  }
 
   /* Launch the secondary thread */
   std::thread secondary_thread(secondary);
