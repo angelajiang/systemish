@@ -102,3 +102,33 @@ function extract {
 fi
 }
 
+# clang-format all modified files
+function cformatgit() {
+  gitdir=`git rev-parse --show-toplevel`
+  if [ "$?" -ne "0" ] ; then
+    echo "Cannot get git root dir"
+    return
+  fi
+ 
+  echo "Format ($gitdir):"
+  allfiles=`git diff --name-only`
+
+  for fl in $allfiles ; do
+    extfl="${fl##*.}"
+    if [ "$extfl" == "cc"  ] || [ "$extfl" == "h"  ] || [ "$extfl" == "cpp"  ] ; then
+      if [ -f "$gitdir/$fl" ] ; then
+        echo "Format "$gitdir/$fl" ($extfl)"
+        clang-format -i "$gitdir/$fl"
+        if [ "$?" -ne "0" ] ; then
+          echo "   >> Error to apply format"
+        fi
+      else
+        echo "Cannot find "$gitdir/$fl" ($extfl)"
+      fi
+    fi
+  done
+}
+
+# FZF config
+[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+export FZF_DEFAULT_COMMAND='ag -l -g ""'
