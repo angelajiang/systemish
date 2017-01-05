@@ -38,21 +38,39 @@ endif
 
 " The following are commented out as they cause vim to behave a lot
 " differently from regular Vi. They are highly recommended though.
-"set showcmd		" Show (partial) command in status line.
+set showcmd		" Show (partial) command in status line.
 set showmatch		" Show matching brackets.
-
-"YouCompleteMe
 set nocompatible              " be iMproved, required
-filetype off                  " required
-set completeopt-=preview
 
+
+" Tabs
+"let mapleader = "\<Space>"
+"set tabpagemax=15
+"set showtabline=2
+"nmap <Leader><Right> gt
+"nmap <Leader><Left> gT
+"nmap <Leader><Up> :tabf<space>
+"imap <Leader><Up> <ESC>:tabf<space>
 
 "Vundle
 set rtp+=~/.vim/bundle/Vundle.vim
 call vundle#begin()
-" let Vundle manage Vundle, required
 Plugin 'VundleVim/Vundle.vim'"
+
+"YouCompleteMe
 Plugin 'Valloric/YouCompleteMe'
+filetype off                  " required
+set completeopt-=preview " Disable YCM scratch preview
+let g:ycm_confirm_extra_conf=0 " Disable YCM config load prompt
+let g:ycm_complete_in_strings = 1
+
+"FZF
+set rtp+=~/.fzf
+let $FZF_DEFAULT_COMMAND = 'ag -g ""' " Respect .gitignore. Needs bashrc changes
+let g:fzf_action = {
+  \ 'enter': 'vsplit',
+  \ 'ctrl-x': 'split'} " Open in vertical split by default. Ctrl-X for horizontal
+nmap :fsp :FZF<Enter>
 
 " Source a global configuration file if available
 if filereadable("/etc/vim/vimrc.local")
@@ -68,7 +86,7 @@ au BufNewFile,BufRead *.pg set filetype=gnuplot
 
 colorscheme apprentice
 set background=light
-hi Comment ctermfg=Blue
+hi Comment ctermfg=Cyan
 
 let &colorcolumn=join(range(81,81),",")
 highlight ColorColumn ctermbg=235 guibg=#2c2d27
@@ -99,7 +117,7 @@ endfunction
 "Do not search included boost headers during Tab completion
 set include=^\\s*#\\s*include\ \\(<boost/\\)\\@!
 
-set statusline+=%F
+"set statusline+=%F
 set laststatus=2
 
 "Ignore whitespace im vimdiff
