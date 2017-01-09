@@ -43,9 +43,7 @@ double get_tsc_freq() {
       (end.tv_sec - start.tv_sec) * 1000000000 + (end.tv_nsec - start.tv_nsec);
   uint64_t rdtsc_cycles = rdtsc() - rdtsc_start;
 
-  return (double) rdtsc_cycles / clock_ns;
+  return (double)rdtsc_cycles / clock_ns;
 }
 
-int main() {
-  printf("freq = %.2f\n", get_tsc_freq());
-}
+int main() { printf("freq = %.2f\n", get_tsc_freq()); }
