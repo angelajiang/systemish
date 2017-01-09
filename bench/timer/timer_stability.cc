@@ -11,7 +11,7 @@
 #include <unistd.h>
 
 #define NUM_ITERS (5) /* Total number of iterations */
-#define RDTSC_GHZ (2.0)
+#define RDTSC_GHZ (3.4)
 
 static inline long long hrd_get_cycles() {
   unsigned low, high;
@@ -28,7 +28,7 @@ void test() {
   uint64_t rdtsc_start = hrd_get_cycles();
 
   /* Do some intense computation, followed by sleep -- multiple times */
-  for (int loop = 0; loop < 5; loop++) {
+  for (int loop = 0; loop < 2; loop++) {
     printf("Loop iter %d. Triggering turboboost.\n", loop);
     // Trigger turbo boost
     int sum = 5;

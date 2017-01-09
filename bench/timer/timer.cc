@@ -88,7 +88,18 @@ void test_rdtsc() {
 
 int main(int argc, char **argv) {
   test_overhead();
+  test_overhead();
+  test_overhead();
+  test_overhead();
+  test_overhead();
   test_clock_realtime();
+  test_clock_realtime();
+  test_clock_realtime();
+  test_clock_realtime();
+  test_clock_realtime();
+  test_rdtsc();
+  test_rdtsc();
+  test_rdtsc();
   test_rdtsc();
 
   return 0;
