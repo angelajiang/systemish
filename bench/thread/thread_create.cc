@@ -9,11 +9,6 @@
 // Results on 2699-v3:
 // Creating thread on same core: `taskset -c 0 ./main`: 2372 ns
 // Creating thread on random core: `./main`: 7988 ns
-static inline uint32_t hrd_fastrand(uint64_t *seed)
-{
-    *seed = *seed * 1103515245 + 12345;
-    return (uint32_t) (*seed >> 32);
-}
 
 void thread_func() {
 }
