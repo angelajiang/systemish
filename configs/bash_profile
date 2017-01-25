@@ -17,7 +17,12 @@ alias moo='ssh akalia@moo.cmcl.cs.cmu.edu'
 alias cmu='ssh akalia@linux.gp.cs.cmu.edu'
 
 # Avoid duplicates in bash history
+shopt -s histappend
+HISTIGNORE='ls'
+export HISTSIZE=100000
+export HISTFILESIZE=100000
 export HISTCONTROL=ignoreboth:erasedups
+bind '"\C-l":"\C-r"'
 
 PATH=$PATH:/home/anuj/systemish/scripts
 PATH=$PATH:/home/anuj/bin/
@@ -111,7 +116,7 @@ function cformatgit() {
   fi
  
   echo "Format ($gitdir):"
-  allfiles=`git diff --name-only`
+  allfiles=`git diff --cached --name-only`
 
   for fl in $allfiles ; do
     extfl="${fl##*.}"
