@@ -58,13 +58,15 @@ call vundle#begin()
 Plugin 'VundleVim/Vundle.vim'"
 
 " YouCompleteMe
-Plugin 'Valloric/YouCompleteMe'
-filetype off                  " required
-set completeopt-=preview " Disable YCM scratch preview
-let g:ycm_confirm_extra_conf=0 " Disable YCM config load prompt
-let g:ycm_complete_in_strings = 1
-let g:ycm_complete_in_comments = 1
-let g:ycm_cache_omnifunc = 0 " Disable cache
+if v:version > 704 || (v:version == 704 && has('patch143'))
+  Plugin 'Valloric/YouCompleteMe'
+  filetype off                  " required
+  set completeopt-=preview " Disable YCM scratch preview
+  let g:ycm_confirm_extra_conf=0 " Disable YCM config load prompt
+  let g:ycm_complete_in_strings = 1
+  let g:ycm_complete_in_comments = 1
+  let g:ycm_cache_omnifunc = 0 " Disable cache
+endif
 
 " Fuzzy file open
 set rtp+=~/.fzf

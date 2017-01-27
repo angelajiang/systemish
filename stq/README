@@ -1,5 +1,0 @@
-To compile on a Linux cluster:
-	make
-
-To run on a Linux cluster:
-	./main < input.txt
