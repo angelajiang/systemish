@@ -15,6 +15,7 @@ alias sc='screen -dRR'
 alias cdx='cd ~/accelio/src/usr/xio/'
 alias moo='ssh akalia@moo.cmcl.cs.cmu.edu'
 alias cmu='ssh akalia@linux.gp.cs.cmu.edu'
+alias zdu='du -mh --max-depth=1 | sort -hr'
 
 # Avoid duplicates in bash history
 shopt -s histappend
@@ -24,11 +25,13 @@ export HISTFILESIZE=100000
 export HISTCONTROL=ignoreboth:erasedups
 bind '"\C-l":"\C-r"'
 
-PATH=$PATH:/home/anuj/systemish/scripts
-PATH=$PATH:/home/anuj/bin/
+# Add both - maybe one works!
+PATH=$PATH:/users/akalia/systemish/scripts
+PATH=$PATH:/home/akalia/systemish/scripts
 export PATH
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu
 
 # Make object files (*.o and *.lo) grey
 LS_COLORS='di=36:fi=0:ln=31:pi=5:so=5:bd=5:cd=5:or=31:mi=0:ex=35:*.rpm=90:*.o=90;40:*.lo=90;40'
@@ -46,6 +49,8 @@ function a() {
 	ssh akaliaNode-$1.RDMA.fawn.apt.emulab.net
 }
 
+alias psmain='ps -afx | grep main'
+
 # Remove SHM regions
 function drop_shm()                                                                 
 {                                                                                   
@@ -56,9 +61,12 @@ function drop_shm()
             sudo ipcrm -M $i 2>/dev/null                                            
         fi                                                                          
     done                                                                            
-}    
+}
 
-function maketar() { tar cvzf "${1%%/}.tar.gz"  "${1%%/}/"; }
+function maketar()
+{
+  tar cvzf "${1%%/}.tar.gz"  "${1%%/}/";
+}
 
 # Grep
 function zgrep()
