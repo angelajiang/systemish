@@ -1,4 +1,5 @@
 all:
-	g++ -mno-avx -mno-avx2 -mno-sse2 -Ofast -o main main.cc
+	g++ -O3 -o push_back push_back.cc
+	g++ -O3 -o resize resize.cc
 clean:
-	rm main
+	rm push_back main
