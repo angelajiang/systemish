@@ -42,20 +42,10 @@ set showcmd		" Show (partial) command in status line.
 set showmatch		" Show matching brackets.
 set nocompatible              " be iMproved, required
 
-
-" Tabs
-"let mapleader = "\<Space>"
-"set tabpagemax=15
-"set showtabline=2
-"nmap <Leader><Right> gt
-"nmap <Leader><Left> gT
-"nmap <Leader><Up> :tabf<space>
-"imap <Leader><Up> <ESC>:tabf<space>
-
 "Vundle
 set rtp+=~/.vim/bundle/Vundle.vim
 call vundle#begin()
-Plugin 'VundleVim/Vundle.vim'"
+Plugin 'VundleVim/Vundle.vim'
 
 " YouCompleteMe
 if v:version > 704 || (v:version == 704 && has('patch143'))
@@ -65,7 +55,9 @@ if v:version > 704 || (v:version == 704 && has('patch143'))
   let g:ycm_confirm_extra_conf=0 " Disable YCM config load prompt
   let g:ycm_complete_in_strings = 1
   let g:ycm_complete_in_comments = 1
-  let g:ycm_cache_omnifunc = 0 " Disable cache
+  "let g:ycm_cache_omnifunc = 0 " Disable cache
+  nnoremap <C-]> :YcmCompleter GoToDefinition<CR>
+  nnoremap <C-g> :YcmCompleter GoToDeclaration<CR>
 endif
 
 " Fuzzy file open
@@ -76,7 +68,11 @@ let g:fzf_action = {
   \ 'ctrl-x': 'split'} " Open in vertical split by default. Ctrl-X for horizontal
 nmap :fsp :FZF<Enter>
 
+" Auto pairs
 Plugin 'auto-pairs-gentle'
+
+" GReplace
+Plugin 'skwp/greplace.vim'
 
 " Source a global configuration file if available
 if filereadable("/etc/vim/vimrc.local")
@@ -127,10 +123,9 @@ set include=^\\s*#\\s*include\ \\(<boost/\\)\\@!
 set laststatus=2
 
 "Ignore whitespace im vimdiff
-if &diff
-    " diff mode
-    set diffopt+=iwhite
-endif
+"if &diff
+"    set diffopt+=iwhite
+"endif
 
 set tabstop=2
 set shiftwidth=2
