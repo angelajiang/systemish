@@ -7,16 +7,13 @@ int main() {
   // Prepare our context and socket
   zmq::context_t context(1);
   zmq::socket_t socket(context, ZMQ_REP);
-
   socket.bind("tcp://*:5555");
 
   zmq::message_t request;
-
-  // Wait for request from client
   socket.recv(&request);
   std::cout << "Received request" << std::endl;
 
-  // Send reply back to client
+  std::cout << "Sending reply " << std::endl;
   zmq::message_t reply(6);
   memcpy(reply.data(), "Reply", 6);
   socket.send(reply);
