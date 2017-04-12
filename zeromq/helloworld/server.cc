@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include <iostream>
 #include <string>
 #include <zmq.hpp>
@@ -5,19 +6,20 @@
 int main() {
   // Prepare our context and socket
   zmq::context_t context(1);
-  zmq::socket_t socket(context, ZMQ_REQ);
+  zmq::socket_t socket(context, ZMQ_REP);
 
-  std::cout << "Connecting to hello world server…" << std::endl;
-  socket.connect("tcp://localhost:5555");
+  socket.bind("tcp://*:5555");
 
-  zmq::message_t request(5);
-  memcpy(request.data(), "Hello", 5);
-  std::cout << "Sending Hello " << std::endl;
-  socket.send(request);
+  zmq::message_t request;
 
-  // Get the reply.
-  zmq::message_t reply;
-  socket.recv(&reply);
-  std::cout << "Received World " << std::endl;
+  // Wait for request from client
+  socket.recv(&request);
+  std::cout << "Received request" << std::endl;
+
+  // Send reply back to client
+  zmq::message_t reply(6);
+  memcpy(reply.data(), "Reply", 6);
+  socket.send(reply);
+
   return 0;
 }
