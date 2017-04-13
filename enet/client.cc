@@ -1,15 +1,9 @@
+#include <assert.h>
 #include <enet/enet.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "common.h"
-
-/// The void* data associated with an ENET peer
-class PeerData {
- public:
-  size_t id;
-  PeerData(size_t id) : id(id) {}
-};
 
 void run_event_loop_one(ENetHost *client, ENetEvent *event) {
   int ret = enet_host_service(client, event, 0);
@@ -17,7 +11,7 @@ void run_event_loop_one(ENetHost *client, ENetEvent *event) {
     // Handle the event
     switch (event->type) {
       case ENET_EVENT_TYPE_DISCONNECT:
-        printf("Client: Disconnected. Peer data = %zu. Exiting.\n",
+        printf("Client: Disconnected. Peer data = %u. Exiting.\n",
                static_cast<PeerData *>(event->peer->data)->id);
         delete static_cast<PeerData *>(event->peer->data);
         exit(0);
@@ -30,7 +24,14 @@ void run_event_loop_one(ENetHost *client, ENetEvent *event) {
   }
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+  uint32_t client_id;
+  if (argc == 2) {
+    client_id = static_cast<uint32_t>(atoi(argv[1]));
+  } else {
+    client_id = 0;
+  }
+
   if (enet_initialize() != 0) {
     fprintf(stderr, "An error occurred while initializing ENet.\n");
     return EXIT_FAILURE;
@@ -51,8 +52,8 @@ int main() {
   enet_address_set_host(&address, "localhost");
   address.port = kUdpPort;
 
-  // Initiate the connection. The last "data" argument is unused.
-  ENetPeer *peer = enet_host_connect(client, &address, kChannels, 0);
+  // Initiate the connection. Send the client ID as the connection data.
+  ENetPeer *peer = enet_host_connect(client, &address, kChannels, client_id);
   if (peer == nullptr) {
     fprintf(stderr, "Client: Failed to connect.\n");
     exit(EXIT_FAILURE);

@@ -1,3 +1,3 @@
 for i in `seq 0 3`; do
-  ./client &
+  ./client $i &
 done

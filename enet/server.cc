@@ -31,15 +31,15 @@ int main() {
   while (enet_host_service(server, &event, 100000) > 0) {
     switch (event.type) {
       case ENET_EVENT_TYPE_CONNECT:
-        printf("A new client connected from %x:%u.\n", event.peer->address.host,
-               event.peer->address.port);
+        printf("Server: connected from client %u.\n", event.data);
+        event.peer->data = new PeerData(event.data);
         break;
 
       case ENET_EVENT_TYPE_RECEIVE:
-        printf(
-            "A packet of length %zu was received on channel %u. "
-            "num_pkts_rx = %zu.\n",
-            event.packet->dataLength, event.channelID, num_pkts_rx);
+        printf("Server: Received pkt of length %zu from client %u.\n",
+            event.packet->dataLength,
+            static_cast<PeerData *>(event.peer->data)->id);
+
         enet_packet_destroy(event.packet);
         num_pkts_rx++;
         if (num_pkts_rx >= 80) {
