@@ -1,4 +1,4 @@
 all:
-	g++ -o map map.cpp
+	g++ -std=c++11 -o map map.cc
 clean:
 	rm -f map
