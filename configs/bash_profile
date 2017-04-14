@@ -9,6 +9,7 @@ alias ls='ls --color'
 alias src='source ~/.bash_profile'
 alias gitd='git difftool'
 alias gtid='git difftool'
+alias igtd='git difftool'
 alias gti='git'
 alias gitshort='git rev-parse --short HEAD'
 alias sc='screen -dRR'
@@ -71,11 +72,7 @@ function maketar()
 # Grep
 function zgrep()
 {
-  if [ "$#" -ne 1 ]; then
-    echo "zgrep: Illegal number of parameters"
-  else
-	  grep -rnIi "$1" . --color
-  fi
+  grep -rnIi --color "$1" "${2:-.}";
 }
 
 # Extract any archive
