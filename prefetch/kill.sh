@@ -1,1 +1,1 @@
-killall prefetch
+pkill prefetch

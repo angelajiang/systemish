@@ -14,6 +14,6 @@ for i in `seq 0 7`; do
 		blue "\tChecking connectivity for 10.0.$j.1"
 		ping -I xge$i 10.0.$j.1 &
 		sleep 2
-		killall ping
+		pkill ping
 	done
 done

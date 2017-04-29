@@ -1,2 +1,2 @@
-killall shm-server
-killall shm-client
+pkill shm-server
+pkill shm-client

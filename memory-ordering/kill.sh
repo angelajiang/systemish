@@ -1,1 +1,1 @@
-killall a.out
+pkill a.out

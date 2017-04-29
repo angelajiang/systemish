@@ -1,2 +1,2 @@
-sudo killall rand-rate
+sudo pkill rand-rate
 

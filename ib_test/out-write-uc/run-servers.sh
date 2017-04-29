@@ -5,8 +5,8 @@ function blue() {
 	echo "${es}$1${ee}"
 }
 
-sudo killall ib_write_bw
-sudo killall ib_read_bw
+sudo pkill ib_write_bw
+sudo pkill ib_read_bw
 
 options="--size=16 --inline_size=16 --post_list=16 --run_infinitely --duration=2 --connection=UD"
 

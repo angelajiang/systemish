@@ -1,3 +1,3 @@
-killall spinlock
-killall manylock
-killall fetch-add
+pkill spinlock
+pkill manylock
+pkill fetch-add

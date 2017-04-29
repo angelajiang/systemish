@@ -4,8 +4,8 @@ if [ "$#" -ne 1 ]; then
 	exit
 fi
 
-sudo killall ib_write_bw
-sudo killall ib_read_bw
+sudo pkill ib_write_bw
+sudo pkill ib_read_bw
 
 port=`expr 3185 + $1`
 ib_send_bw --connection=UD --port=$port &

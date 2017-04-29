@@ -1,1 +1,1 @@
-sudo killall ib_read_bw
+sudo pkill ib_read_bw

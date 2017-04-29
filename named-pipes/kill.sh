@@ -1,1 +1,1 @@
-killall named-pipes
+pkill named-pipes

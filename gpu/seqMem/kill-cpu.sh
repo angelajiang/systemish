@@ -1,1 +1,1 @@
-killall cpu
+pkill cpu
