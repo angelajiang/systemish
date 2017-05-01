@@ -31,8 +31,11 @@ int main() {
   while (enet_host_service(server, &event, 100000) > 0) {
     switch (event.type) {
       case ENET_EVENT_TYPE_CONNECT:
-        printf("Server: connected from client %u.\n", event.data);
+        char hostname[200];
+        enet_address_get_host(&event.peer->address, hostname, 200);
+        printf("Server: connected from client %s.\n", hostname);
         event.peer->data = new PeerData(event.data);
+        enet_peer_reset(event.peer);
         break;
 
       case ENET_EVENT_TYPE_RECEIVE:

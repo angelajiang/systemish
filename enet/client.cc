@@ -62,7 +62,8 @@ int main(int argc, char *argv[]) {
   peer->data = static_cast<void *>(new PeerData(3185));
 
   // Reduce timeout for peer failures. This needs work.
-  enet_peer_timeout(peer, 1, 1, 1);
+  enet_peer_ping_interval(peer, 1);
+  enet_peer_timeout(peer, 1, 1, 10);
 
   // Run event loop to connect to the peer
   ENetEvent event;
@@ -75,6 +76,12 @@ int main(int argc, char *argv[]) {
     exit(-1);
   }
 
+  while (true) {
+    ENetEvent event;
+    run_event_loop_one(client, &event);
+  }
+
+  /*
   while (1) {
     printf("Client: Sending 10 packets.\n");
 
@@ -103,6 +110,7 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+  */
 
   enet_host_destroy(client);
 }
