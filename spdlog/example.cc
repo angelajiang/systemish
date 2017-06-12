@@ -36,7 +36,7 @@ void console_thread(std::shared_ptr<spd::logger> console) {
   // Customize msg format for all messages
   spd::set_pattern("[%H:%M:%S:%f thread %t] eRPC: %v");
 
-  for (size_t i = 0; i < 10; i++) {
+  for (size_t i = 0; i < 100; i++) {
     erpc_derror("Some error message with arg{}..", 1);
     erpc_dwarn("Easy padding in numbers like {:08d}", 12);
     erpc_dinfo("Support for floats {:03.2f}", 1.23456);
@@ -51,7 +51,7 @@ void console_thread(std::shared_ptr<spd::logger> console) {
   }
 }
 
-int main(int, char* []) {
+int main() {
   std::shared_ptr<spd::logger> console = spd::stdout_color_mt("console");
 
   auto thread_1 = std::thread(console_thread, console);
@@ -59,7 +59,6 @@ int main(int, char* []) {
 
   thread_1.join();
   thread_2.join();
-
-  // Release and close all loggers
+  
   spd::drop_all();
 }
