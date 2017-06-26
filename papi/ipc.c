@@ -37,8 +37,7 @@ int main() {
   printf("Real_time: %f Proc_time: %f Total instructions: %lld IPC: %f\n",
          real_time, proc_time, ins, ipc);
 
-  /* clean up */
   PAPI_shutdown();
-  printf("Ans = %f\n", ans);
+  printf("Loop sum = %f\n", ans);
   exit(0);
 }
