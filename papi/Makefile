@@ -1,3 +1,6 @@
 all:
 	gcc -O3 -o ipc ipc.c -lpapi
-	gcc -O3 -o ins_count ins_count.c -lpapi
+	gcc -O3 -o general general.c -lpapi
+
+clean:
+	rm ipc general
