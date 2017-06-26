@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define ITERS 100000000
+#define ITERS 2000000000
 
 uint64_t seed = 0xdeadbeef;
 inline uint32_t next_u32() {
