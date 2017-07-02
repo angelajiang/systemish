@@ -71,7 +71,7 @@ nmap :fsp :FZF<Enter>
 " Auto pairs
 Plugin 'auto-pairs-gentle'
 
-" GReplace
+" greplace
 Plugin 'skwp/greplace.vim'
 
 " Source a global configuration file if available
@@ -98,6 +98,9 @@ nmap <silent> <A-Up> :wincmd k<CR>
 nmap <silent> <A-Down> :wincmd j<CR>
 nmap <silent> <A-Left> :wincmd h<CR>
 nmap <silent> <A-Right> :wincmd l<CR>
+
+"Quit all vim splits
+nmap :qq :qa<Enter>
 
 "Use TAB to complete when typing words, else inserts TABs as usual.
 "Uses dictionary and source files to find matching words to complete.
@@ -132,6 +135,19 @@ set shiftwidth=2
 set expandtab
 set autoindent
 set smartindent
+
+" Automatically open, but do not go to (if there are errors) the quickfix /
+" location list window, or close it when is has become empty.
+"
+" Note: Must allow nesting of autocmds to enable any customizations for quickfix
+" buffers.
+" Note: Normally, :cwindow jumps to the quickfix window if the command opens it
+" (but not if it's already open). However, as part of the autocmd, this doesn't
+" seem to happen.
+autocmd QuickFixCmdPost [^l]* nested cwindow
+autocmd QuickFixCmdPost    l* nested lwindow
+
+set tags=./tags,tags;
 
 call vundle#end()
 filetype plugin indent on
