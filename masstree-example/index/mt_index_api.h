@@ -3,6 +3,7 @@
 #include "kvthread.hh"
 #include "masstree.hh"
 #include "masstree_insert.hh"
+#include "masstree_scan.hh"
 #include "masstree_tcursor.hh"
 #include "query_masstree.hh"
 
@@ -78,47 +79,38 @@ class MtIndex {
     return dynamic_get(Str(key, keylen), value, ti);
   }
 
-  // Get Next (ordered)
-  bool dynamic_get_next(Str &value, char *cur_key, int *cur_keylen,
-                        threadinfo *ti) {
-    lcdf::Json req = lcdf::Json::array(0, 0, Str(cur_key, *cur_keylen), 2);
-    q_[0].run_scan(table_->table(), req, *ti);
-    if (req.size() < 4) return false;
-    value = req[3].as_s();
-    if (req.size() < 6) {
-      *cur_keylen = 0;
-    } else {
-      Str cur_key_str = req[4].as_s();
-      memcpy(cur_key, cur_key_str.s, static_cast<size_t>(cur_key_str.len));
-      *cur_keylen = cur_key_str.len;
-    }
-
-    return true;
-  }
-
-  // Get Next N (ordered)
-  struct scanner {
-    Str *values;
+  struct scanner_t {
     int range;
 
-    scanner(Str *values, int range) : values(values), range(range) {}
+    scanner_t(int range) : range(range) {}
 
     template <typename SS2, typename K2>
     void visit_leaf(const SS2 &, const K2 &, threadinfo &) {}
-    bool visit_value(Str, const row_type *row, threadinfo &) {
-      *values = row->col(0);
-      ++values;
+
+    bool visit_value(Str key, const row_type *row, threadinfo &) {
+      Str value = row->col(0);
+      if (value.len == 0) {
+        printf("Value len = 0.\n");
+      } else {
+        printf("Visiting key %p, value %zu.\n",
+               reinterpret_cast<size_t *>(
+                   *reinterpret_cast<const size_t *>(key.s)),
+               *reinterpret_cast<const size_t *>(value.s));
+      }
+
       --range;
       return range > 0;
     }
   };
 
-  int get_next_n(Str *values, char *cur_key, int *cur_keylen, int range,
-                 threadinfo *ti) {
+  int count_in_range(const char *cur_key, int cur_keylen, int range,
+                     threadinfo *ti) {
     if (range == 0) return 0;
 
-    scanner s(values, range);
-    int count = table_->table().scan(Str(cur_key, *cur_keylen), true, s, *ti);
+    scanner_t scanner(range);
+    int count =
+        table_->table().scan(Str(cur_key, cur_keylen), true, scanner, *ti);
+
     return count;
   }
 

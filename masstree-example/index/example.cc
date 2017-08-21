@@ -2,7 +2,7 @@
 #include "mt_index_api.h"
 
 static constexpr size_t kNumWorkerThreads = 2;  // Workers, excluding main
-static constexpr size_t kNumKeys = (1024 * 1024);
+static constexpr size_t kNumKeys = 1024;
 
 class FastRand {
  public:
@@ -92,6 +92,12 @@ int main() {
     mti.put(reinterpret_cast<const char *>(&key), sizeof(size_t),
             reinterpret_cast<const char *>(&value), sizeof(size_t), ti);
   }
+
+  int start_key = kNumKeys / 2;
+  int count = mti.count_in_range(reinterpret_cast<const char *>(&start_key),
+                                 sizeof(size_t), kNumKeys, ti);
+  printf("count = %d.\n", count);
+  exit(0);
 
   // Create threadinfo structs for worker threads
   std::vector<threadinfo *> ti_vec;
