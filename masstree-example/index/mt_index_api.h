@@ -17,36 +17,14 @@ class MtIndex {
     table_->initialize(*ti);
   }
 
-  // Garbage Collection
-  inline void clean_rcu(threadinfo *ti) { ti->rcu_quiesce(); }
-
-  // Insert Unique
-  inline bool put_uv(const Str &key, const Str &value, threadinfo *ti) {
-    Masstree::default_table::cursor_type lp(table_->table(), key);
-    bool found = lp.find_insert(*ti);
-    if (!found) {
-      ti->observe_phantoms(lp.node());
-    } else {
-      lp.finish(1, *ti);
-      return false;
-    }
-
-    qtimes_.ts = ti->update_timestamp();
-    qtimes_.prev_ts = 0;
-    lp.value() = row_type::create1(value, qtimes_.ts, *ti);
-    lp.finish(1, *ti);
-
-    return true;
-  }
-
-  bool put_uv(const char *key, int keylen, const char *value, int valuelen,
-              threadinfo *ti) {
-    return put_uv(Str(key, keylen), Str(value, valuelen), ti);
-  }
+  inline void swap_endian(uint64_t &x) { x = __bswap_64(x); }
 
   // Upsert
-  inline void put(const Str &key, const Str &value, threadinfo *ti) {
-    Masstree::default_table::cursor_type lp(table_->table(), key);
+  inline void put(size_t key, size_t value, threadinfo *ti) {
+    swap_endian(key);
+    Str key_str(reinterpret_cast<const char *>(&key), sizeof(size_t));
+
+    Masstree::default_table::cursor_type lp(table_->table(), key_str);
     bool found = lp.find_insert(*ti);
     if (!found) {
       ti->observe_phantoms(lp.node());
@@ -58,60 +36,51 @@ class MtIndex {
       lp.value()->deallocate_rcu(*ti);
     }
 
-    lp.value() = row_type::create1(value, qtimes_.ts, *ti);
+    Str value_str(reinterpret_cast<const char *>(&value), sizeof(size_t));
+
+    lp.value() = row_type::create1(value_str, qtimes_.ts, *ti);
     lp.finish(1, *ti);
   }
 
-  void put(const char *key, int keylen, const char *value, int valuelen,
-           threadinfo *ti) {
-    put(Str(key, keylen), Str(value, valuelen), ti);
-  }
-
   // Get (unique value)
-  inline bool dynamic_get(const Str &key, Str &value, threadinfo *ti) {
-    Masstree::default_table::unlocked_cursor_type lp(table_->table(), key);
+  inline bool get(size_t key, size_t &value, threadinfo *ti) {
+    swap_endian(key);
+    Str key_str(reinterpret_cast<const char *>(&key), sizeof(size_t));
+
+    Masstree::default_table::unlocked_cursor_type lp(table_->table(), key_str);
     bool found = lp.find_unlocked(*ti);
-    if (found) value = lp.value()->col(0);
+
+    if (found) {
+      value = *reinterpret_cast<const size_t *>(lp.value()->col(0).s);
+    }
+
     return found;
   }
 
-  bool get(const char *key, int keylen, Str &value, threadinfo *ti) {
-    return dynamic_get(Str(key, keylen), value, ti);
-  }
-
+  // An object with callbacks passed to table.scan()
   struct scanner_t {
-    int range;
-
     scanner_t(int range) : range(range) {}
 
     template <typename SS2, typename K2>
     void visit_leaf(const SS2 &, const K2 &, threadinfo &) {}
 
-    bool visit_value(Str key, const row_type *row, threadinfo &) {
-      Str value = row->col(0);
-      if (value.len == 0) {
-        printf("Value len = 0.\n");
-      } else {
-        printf("Visiting key %p, value %zu.\n",
-               reinterpret_cast<size_t *>(
-                   *reinterpret_cast<const size_t *>(key.s)),
-               *reinterpret_cast<const size_t *>(value.s));
-      }
-
-      --range;
+    bool visit_value(Str, const row_type *, threadinfo &) {
+      range--;
       return range > 0;
     }
+
+    int range;
   };
 
-  int count_in_range(const char *cur_key, int cur_keylen, int range,
-                     threadinfo *ti) {
+  size_t count_in_range(size_t cur_key, size_t range, threadinfo *ti) {
     if (range == 0) return 0;
 
-    scanner_t scanner(range);
-    int count =
-        table_->table().scan(Str(cur_key, cur_keylen), true, scanner, *ti);
+    swap_endian(cur_key);
+    Str cur_key_str(reinterpret_cast<const char *>(&cur_key), sizeof(size_t));
 
-    return count;
+    scanner_t scanner(range);
+    int count = table_->table().scan(cur_key_str, true, scanner, *ti);
+    return static_cast<size_t>(count);
   }
 
  private:
