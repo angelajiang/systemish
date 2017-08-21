@@ -2,6 +2,7 @@
 #include "kvrow.hh"
 #include "kvthread.hh"
 #include "masstree.hh"
+#include "masstree_insert.hh"
 #include "masstree_tcursor.hh"
 #include "query_masstree.hh"
 

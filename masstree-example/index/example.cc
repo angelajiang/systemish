@@ -1,7 +1,7 @@
 #include <thread>
 #include "mt_index_api.h"
 
-static constexpr size_t kNumWorkerThreads = 1;  // Workers, excluding main
+static constexpr size_t kNumWorkerThreads = 2;  // Workers, excluding main
 static constexpr size_t kNumKeys = (1024 * 1024);
 
 class FastRand {
