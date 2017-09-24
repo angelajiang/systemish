@@ -1,21 +1,10 @@
-if [ "$#" -ne 1 ]; then
-    echo "Illegal number of parameters"
-	echo "Usage: ./run-machine.sh <machine-id>"
-	exit
-fi
+num_clients=2  # Number of clients to run on this machine
+size=8000000
+server_name="akaliaNode-1.RDMA.fawn.apt.emulab.net"
 
-sudo pkill ib_write_bw
-sudo pkill ib_read_bw
+for i in `seq 1 $num_clients`; do
+	port=`expr 3185 + $i`
+  ib_read_bw -F --size=$size --port=$port --run_infinitely --duration=1 --tx-depth=1 $server_name &
+done
 
-port=`expr $1 + 3185`
-options="--size=16 --post_list=16 --run_infinitely --duration=2 --connection=RC"
 
-# Server names
-
-# APT
-server_name="node-1.RDMA.fawn.apt.emulab.net"
-
-# Nome
-# server_name="node-1.RDMA.fawn.nome.nx"
-
-taskset -c 0 ib_read_bw -F --port=$port $options $server_name

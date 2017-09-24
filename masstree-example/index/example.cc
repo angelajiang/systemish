@@ -85,19 +85,22 @@ int main() {
   }
 
   // Do some scans
+  FastRand fast_rand(0);
   for (size_t iter = 0; iter < 10; iter++) {
     struct timespec scan_start, scan_end;
     clock_gettime(CLOCK_REALTIME, &scan_start);
 
-    size_t start_key = kNumKeys / 2;
-    size_t count = mti.count_in_range(start_key, kNumKeys, ti);
+    size_t start_key = fast_rand.next_u32() % kNumKeys;
+    size_t range = fast_rand.next_u32() % kNumKeys;
+    size_t sum = mti.sum_in_range(start_key, range, ti);
 
     clock_gettime(CLOCK_REALTIME, &scan_end);
 
     double seconds = (scan_end.tv_sec - scan_start.tv_sec) +
                      (scan_end.tv_nsec - scan_start.tv_nsec) / 1000000000.0;
 
-    printf("Time to scan %zu keys = %.2f usec.\n", count, seconds * 1000000);
+    printf("Time to sum (start = %zu, range = %zu) = %.2f usec. Sum = %zu.\n",
+           start_key, range, seconds * 1000000, sum);
   }
 
   // Create threadinfo structs for worker threads
