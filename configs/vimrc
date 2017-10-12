@@ -68,11 +68,9 @@ let g:fzf_action = {
   \ 'ctrl-x': 'split'} " Open in vertical split by default. Ctrl-X for horizontal
 nmap :fsp :FZF<Enter>
 
-" Auto pairs
 Plugin 'auto-pairs-gentle'
-
-" greplace
 Plugin 'skwp/greplace.vim'
+Plugin 'cmdline-completion'
 
 " Source a global configuration file if available
 if filereadable("/etc/vim/vimrc.local")
