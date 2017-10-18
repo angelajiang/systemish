@@ -141,6 +141,12 @@ function cformatgit() {
   done
 }
 
+# Shortcut for cd using FZF
+pp() {
+  local dir
+  dir=$(find . -path '*/\.*' -prune -o -type d -print | sed '1d;s/^..//' | fzf-tmux +m) && cd "$dir"
+}
+
 # FZF config
 [ -f ~/.fzf.bash ] && source ~/.fzf.bash
 export FZF_DEFAULT_COMMAND='ag -l -g ""'
