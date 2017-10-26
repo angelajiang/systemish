@@ -43,9 +43,9 @@ alias psmain='ps -afx | grep main'
 # Remove SHM regions
 function drop_shm()
 {
-    echo "Dropping SHM entries
+    echo "Dropping SHM entries"
     for i in $(ipcs -m | awk '{ print $1; }'); do
-        if [[ $i =~ 0x.* ]]; the
+        if [[ $i =~ 0x.* ]]; then
             sudo ipcrm -M $i 2>/dev/null
         fi
     done
@@ -139,6 +139,12 @@ function cformatgit() {
       fi
     fi
   done
+}
+
+# Shortcut for cd using FZF
+pp() {
+  local dir
+  dir=$(find . -path '*/\.*' -prune -o -type d -print | sed '1d;s/^..//' | fzf-tmux +m) && cd "$dir"
 }
 
 # FZF config
