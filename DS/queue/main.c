@@ -5,7 +5,7 @@
 #include "ds_queue.h"
 
 int main() {
-  struct ds_queue q;
+  struct ds_queue_t q;
   ds_queue_init(&q);
 
   ds_queue_add(&q, 1);
