@@ -24,6 +24,7 @@ class UDPClient {
 
   ~UDPClient() {
     for (auto kv : addrinfo_map) freeaddrinfo(kv.second);
+    close(sock_fd);
   }
 
   ssize_t send(const std::string remote_hostname, const char *msg,
