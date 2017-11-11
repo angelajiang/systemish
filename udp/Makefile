@@ -1,5 +1,6 @@
 all:
-	g++ -O3 -o main main.cc
+	g++ -O3 -o client client.cc
+	g++ -O3 -o server server.cc
 
 clean:
-	rm main
+	rm client server
