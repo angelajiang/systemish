@@ -1,14 +1,7 @@
 #include <netdb.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
 #include <unistd.h>
-#include <map>
 #include <stdexcept>
-#include <string>
 
 /// Basic UDP server class that supports receiving messages
 class UDPServer {
