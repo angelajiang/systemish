@@ -7,8 +7,9 @@ int main() {
   UDPServer u(global_udp_port);
   char msg[max_msg_size];
 
+  size_t num_rx = 0;
   while (true) {
     u.recv_blocking(msg, max_msg_size);
-    printf("%s\n", msg);
+    printf("%zu: %s\n", num_rx++, msg);
   }
 }
