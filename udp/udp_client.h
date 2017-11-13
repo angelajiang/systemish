@@ -5,7 +5,8 @@
 #include <map>
 #include <stdexcept>
 
-/// Basic UDP client class that supports sending messages
+/// Basic UDP client class that supports sending messages and caches remote
+/// addrinfo mappings
 class UDPClient {
  public:
   UDPClient(uint16_t global_udp_port) : global_udp_port(global_udp_port) {
@@ -17,9 +18,12 @@ class UDPClient {
     }
   }
 
+  UDPClient() {}
+  UDPClient(const UDPClient &) = delete;
+
   ~UDPClient() {
     for (auto kv : addrinfo_map) freeaddrinfo(kv.second);
-    close(sock_fd);
+    if (sock_fd != -1) close(sock_fd);
   }
 
   ssize_t send(const std::string remote_hostname, const char *msg,
@@ -48,8 +52,8 @@ class UDPClient {
   }
 
  private:
-  const uint16_t global_udp_port;
+  uint16_t global_udp_port;
   char _port_str[16];
-  int sock_fd;
+  int sock_fd = -1;
   std::map<std::string, struct addrinfo *> addrinfo_map;
 };
