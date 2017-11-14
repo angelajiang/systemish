@@ -50,7 +50,7 @@ class UDPServer {
     if (sock_fd != -1) close(sock_fd);
   }
 
-  int recv_blocking(char *msg, size_t max_size) {
+  ssize_t recv_blocking(char *msg, size_t max_size) {
     return recv(sock_fd, msg, max_size, 0);
   }
 
