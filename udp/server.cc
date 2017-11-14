@@ -5,7 +5,7 @@ static constexpr size_t max_msg_size = 1500;
 static constexpr size_t timeout_ms = 100;
 
 int main() {
-  UDPServer u(global_udp_port, timeout_ms);
+  UDPServer u(global_udp_port, timeout_ms, 1024 * 1024 * 4);
   char msg[max_msg_size];
 
   size_t num_rx = 0;

@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "udp_client.h"
 
 static std::string dest_hostname = "localhost";
@@ -14,6 +15,6 @@ int main() {
 
   for (size_t i = 0; i < num_pkts; i++) {
     ssize_t ret = u.send(dest_hostname, dest_port, msg, msg_len);
-    if (ret != msg_len) throw std::runtime_error("send() failed");
+    assert(ret == static_cast<ssize_t>(msg_len));
   }
 }

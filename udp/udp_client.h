@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <netdb.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -34,7 +35,7 @@ class UDPClient {
 
       struct addrinfo hints;
       memset(&hints, 0, sizeof(hints));
-      hints.ai_family = AF_UNSPEC;
+      hints.ai_family = AF_INET;
       hints.ai_socktype = SOCK_DGRAM;
       hints.ai_protocol = IPPROTO_UDP;
 
@@ -47,8 +48,14 @@ class UDPClient {
       addrinfo_map[rem_hostname] = rem_addrinfo;
     }
 
-    return sendto(sock_fd, msg, size, 0, rem_addrinfo->ai_addr,
-                  rem_addrinfo->ai_addrlen);
+    ssize_t ret = sendto(sock_fd, msg, size, 0, rem_addrinfo->ai_addr,
+                         rem_addrinfo->ai_addrlen);
+    if (ret != static_cast<ssize_t>(size)) {
+      throw std::runtime_error("sendto() failed. errno = " +
+                               std::string(strerror(errno)));
+    }
+
+    return ret;
   }
 
  private:
