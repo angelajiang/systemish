@@ -114,6 +114,11 @@ function extract {
 fi
 }
 
+# Show the sizes of everything in the current directory
+function sizels {
+  du -h --max-depth=1
+}
+
 # clang-format all modified files
 function cformatgit() {
   gitdir=`git rev-parse --show-toplevel`
@@ -151,6 +156,11 @@ pp() {
 [ -f ~/.fzf.bash ] && source ~/.fzf.bash
 export FZF_DEFAULT_COMMAND='ag -l -g ""'
 
+export MLX4_SINGLE_THREADED=1
+export MLX5_SINGLE_THREADED=1
+export MLX_QP_ALLOC_TYPE="HUGE"
+export MLX_CQ_ALLOC_TYPE="HUGE"
+
 sf() {
   if [ "$#" -lt 1 ]; then echo "sf: Supply string to search for!"; return 1; fi
   printf -v search "%q" "$*"
@@ -163,3 +173,11 @@ sf() {
 }
 
 export autorun_app="small_rpc_tput"
+#export autorun_app="consensus"
+#export autorun_app="large_rpc_tput"
+#export autorun_app="masstree_analytics"
+#export autorun_app="mica_test"
+
+# Initial directory
+cd ~/eRPC
+
