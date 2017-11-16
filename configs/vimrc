@@ -56,8 +56,8 @@ if v:version > 704 || (v:version == 704 && has('patch143'))
   let g:ycm_complete_in_strings = 1
   let g:ycm_complete_in_comments = 1
   "let g:ycm_cache_omnifunc = 0 " Disable cache
-  nnoremap <C-]> :YcmCompleter GoToDefinition<CR>
-  nnoremap <C-g> :YcmCompleter GoToDeclaration<CR>
+  "nnoremap <C-]> :YcmCompleter GoToDefinition<CR>
+  "nnoremap <C-g> :YcmCompleter GoToDeclaration<CR>
 endif
 
 " Fuzzy file open
@@ -70,6 +70,7 @@ nmap :fsp :FZF<Enter>
 
 Plugin 'auto-pairs-gentle'
 Plugin 'skwp/greplace.vim'
+Plugin 'kopischke/vim-fetch'
 Plugin 'cmdline-completion'
 
 " Source a global configuration file if available
@@ -133,6 +134,7 @@ set shiftwidth=2
 set expandtab
 set autoindent
 set smartindent
+set nowrap
 
 " Automatically open, but do not go to (if there are errors) the quickfix /
 " location list window, or close it when is has become empty.
@@ -145,8 +147,10 @@ set smartindent
 autocmd QuickFixCmdPost [^l]* nested cwindow
 autocmd QuickFixCmdPost    l* nested lwindow
 
-set tags=./tags,tags;
+nnoremap  <silent>   <tab>  :if &modifiable && !&readonly && &modified <CR> :write<CR> :endif<CR>:bnext<CR>
+nnoremap  <silent> <s-tab>  :if &modifiable && !&readonly && &modified <CR> :write<CR> :endif<CR>:bprevious<CR>
+
+"set tags=./tags,tags;
 
 call vundle#end()
 filetype plugin indent on
-

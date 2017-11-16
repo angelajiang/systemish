@@ -150,3 +150,16 @@ pp() {
 # FZF config
 [ -f ~/.fzf.bash ] && source ~/.fzf.bash
 export FZF_DEFAULT_COMMAND='ag -l -g ""'
+
+sf() {
+  if [ "$#" -lt 1 ]; then echo "sf: Supply string to search for!"; return 1; fi
+  printf -v search "%q" "$*"
+  include="cpp,c,cc,h"
+  exclude=".config,.git"
+  rg_command='rg --column --line-number --no-heading --fixed-strings --ignore-case --no-ignore --hidden --follow --color "always" -g "*.{'$include'}" -g "!{'$exclude'}/*"'
+  files=`eval $rg_command $search | fzf --ansi --multi --reverse | awk -F ':' '{print $1":"$2":"$3}'`
+  echo "$files"
+  [[ -n "$files" ]] && ${EDITOR:-vim} $files
+}
+
+export autorun_app="small_rpc_tput"
