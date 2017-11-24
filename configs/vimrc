@@ -144,7 +144,8 @@ autocmd QuickFixCmdPost    l* nested lwindow
 nnoremap  <silent>   <tab>  :if &modifiable && !&readonly && &modified <CR> :write<CR> :endif<CR>:bnext<CR>
 nnoremap  <silent> <s-tab>  :if &modifiable && !&readonly && &modified <CR> :write<CR> :endif<CR>:bprevious<CR>
 
-"set tags=./tags,tags;
+set nowrap
+set linebreak
 
 call vundle#end()
 filetype plugin indent on
