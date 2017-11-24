@@ -55,19 +55,16 @@ if v:version > 704 || (v:version == 704 && has('patch143'))
   let g:ycm_confirm_extra_conf=0 " Disable YCM config load prompt
   let g:ycm_complete_in_strings = 1
   let g:ycm_complete_in_comments = 1
-  "let g:ycm_cache_omnifunc = 0 " Disable cache
-  "nnoremap <C-]> :YcmCompleter GoToDefinition<CR>
-  "nnoremap <C-g> :YcmCompleter GoToDeclaration<CR>
+  nnoremap <C-d> :YcmCompleter GetDoc<CR>
 endif
 
 " Fuzzy file open
 set rtp+=~/.fzf
 let $FZF_DEFAULT_COMMAND = 'ag -g ""' " Respect .gitignore. Needs bashrc changes
-let g:fzf_action = {
-  \ 'enter': 'vsplit',
-  \ 'ctrl-x': 'split'} " Open in vertical split by default. Ctrl-X for horizontal
+let g:fzf_action = {'enter': 'vsplit'}
 nmap :fsp :FZF<Enter>
 
+nnoremap <silent> <Leader>s :call fzf#run({'down': '40%', 'sink': 'leftabove split'})<CR>
 Plugin 'auto-pairs-gentle'
 Plugin 'skwp/greplace.vim'
 Plugin 'kopischke/vim-fetch'
@@ -78,11 +75,8 @@ if filereadable("/etc/vim/vimrc.local")
   source /etc/vim/vimrc.local
 endif
 
-set number
-
 syntax on
 filetype on
-au BufNewFile,BufRead *.ispc set filetype=c
 au BufNewFile,BufRead *.pg set filetype=gnuplot
 
 colorscheme apprentice
