@@ -85,9 +85,10 @@ int main() {
     ibv_post_recv(qp, &wr, &bad_wr);
   }
 
-  // Register steering rule to intercept packet to DEST_MAC and place packet
+  // Register steering rule to intercept packet to DST_MAC and place packet
   // in ring pointed by ->qp
-  uint8_t DEST_MAC[6] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05};
+  //uint8_t DST_MAC[6] = {0xd6, 0xd7, 0x7b, 0x9a, 0x0d, 0xec};
+  uint8_t DST_MAC[6] = {0xec, 0x0d, 0x9a, 0x7b, 0xd7, 0xd6};
   uint8_t SRC_MAC[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   uint8_t MASK_MAC[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
@@ -110,7 +111,7 @@ int main() {
 
   spec_eth->type = static_cast<enum ibv_flow_spec_type>(IBV_EXP_FLOW_SPEC_ETH);
   spec_eth->size = sizeof(struct ibv_flow_spec_eth);
-  copy_mac(spec_eth->val.dst_mac, DEST_MAC);
+  copy_mac(spec_eth->val.dst_mac, DST_MAC);
   copy_mac(spec_eth->val.src_mac, SRC_MAC);
   spec_eth->val.ether_type = 0;
   spec_eth->val.vlan_tag = 0;
