@@ -5,10 +5,10 @@
 #include <unistd.h>
 
 #define PORT_NUM 1
-#define ENTRY_SIZE 9000 /* maximum size of each send buffer */
-#define SQ_NUM_DESC 512 /* maximum number of sends waiting for completion */
+#define ENTRY_SIZE 9000  // maximum size of each send buffer
+#define SQ_NUM_DESC 512  // maximum number of sends waiting for completion
 
-/* template of packet to send - in this case icmp */
+// template of packet to send - in this case icmp
 #define DST_MAC 0x00, 0x01, 0x02, 0x03, 0x04, 0x05
 #define SRC_MAC 0xe4, 0x1d, 0x2d, 0xf3, 0xdd, 0xcc
 #define ETH_TYPE 0x08, 0x00
@@ -34,25 +34,25 @@ int main() {
   struct ibv_pd *pd;
   int ret;
 
-  /*1. Get the list of offload capable devices */
+  // 1. Get the list of offload capable devices
   dev_list = ibv_get_device_list(NULL);
   if (!dev_list) {
     perror("Failed to get devices list");
     exit(1);
   }
 
-  /* In this example, we will use the first adapter (device) we find on the list
-   * (dev_list[0]) . You may change the code in case you have a setup with more
-   * than one adapter installed. */
+  // In this example, we will use the first adapter (device) we find on the list
+  // (dev_list[0]) . You may change the code in case you have a setup with more
+  // than one adapter installed.
   ib_dev = dev_list[0];
   if (!ib_dev) {
     fprintf(stderr, "IB device not found\n");
     exit(1);
   }
 
-  /* 2. Get the device context */
-  /* Get context to device. The context is a descriptor and needed for resource
-   * tracking and operations */
+  // 2. Get the device context
+  // Get context to device. The context is a descriptor and needed for resource
+  // tracking and operations
   context = ibv_open_device(ib_dev);
   if (!context) {
     fprintf(stderr, "Couldn't get context for %s\n",
@@ -60,15 +60,15 @@ int main() {
     exit(1);
   }
 
-  /* 3. Allocate Protection Domain */
-  /* Allocate a protection domain to group memory regions (MR) and rings */
+  // 3. Allocate Protection Domain
+  // Allocate a protection domain to group memory regions (MR) and rings
   pd = ibv_alloc_pd(context);
   if (!pd) {
     fprintf(stderr, "Couldn't allocate PD\n");
     exit(1);
   }
 
-  /* 4. Create Complition Queue (CQ) */
+  // 4. Create Complition Queue (CQ)
   struct ibv_cq *cq;
   cq = ibv_create_cq(context, SQ_NUM_DESC, NULL, NULL, 0);
   if (!cq) {
@@ -76,34 +76,34 @@ int main() {
     exit(1);
   }
 
-  /* 5. Initialize QP */
+  // 5. Initialize QP
   struct ibv_qp *qp;
   struct ibv_qp_init_attr qp_init_attr = {
       .qp_context = NULL,
-      /* report send completion to cq */
+      // report send completion to cq
       .send_cq = cq,
       .recv_cq = cq,
 
       .cap =
-          {/* number of allowed outstanding sends without waiting for a
-              completion */
+          {// number of allowed outstanding sends without waiting for a
+           // completion
            .max_send_wr = SQ_NUM_DESC,
-           /* maximum number of pointers in each descriptor */
+           // maximum number of pointers in each descriptor
            .max_send_sge = 1,
-           /* if inline maximum of payload data in the descriptors themselves */
+           // if inline maximum of payload data in the descriptors themselves
            .max_inline_data = 512,
            .max_recv_wr = 0},
       .qp_type = IBV_QPT_RAW_PACKET,
   };
 
-  /* 6. Create Queue Pair (QP) - Send Ring */
+  // 6. Create Queue Pair (QP) - Send Ring
   qp = ibv_create_qp(pd, &qp_init_attr);
   if (!qp) {
     fprintf(stderr, "Couldn't create RSS QP\n");
     exit(1);
   }
 
-  /* 7. Initialize the QP (receive ring) and assign a port */
+  // 7. Initialize the QP (receive ring) and assign a port
   struct ibv_qp_attr qp_attr;
   int qp_flags;
   memset(&qp_attr, 0, sizeof(qp_attr));
@@ -118,9 +118,9 @@ int main() {
   }
   memset(&qp_attr, 0, sizeof(qp_attr));
 
-  /* 8. Move the ring to ready to send in two steps (a,b) */
-  /*    a. Move ring state to ready to receive, this is needed to be able to
-   * move ring to ready to send even if receive queue is not enabled */
+  // 8. Move the ring to ready to send in two steps (a,b)
+  //    a. Move ring state to ready to receive, this is needed to be able to
+  // move ring to ready to send even if receive queue is not enabled
   qp_flags = IBV_QP_STATE;
   qp_attr.qp_state = IBV_QPS_RTR;
   ret = ibv_modify_qp(qp, &qp_attr, qp_flags);
@@ -129,7 +129,7 @@ int main() {
     exit(1);
   }
 
-  /*    b. Move the ring to ready to send */
+  //    b. Move the ring to ready to send
   qp_flags = IBV_QP_STATE;
   qp_attr.qp_state = IBV_QPS_RTS;
   ret = ibv_modify_qp(qp, &qp_attr, qp_flags);
@@ -138,10 +138,10 @@ int main() {
     exit(1);
   }
 
-  /* 9. Allocate Memory */
+  // 9. Allocate Memory
   int buf_size =
       ENTRY_SIZE *
-      SQ_NUM_DESC; /* maximum size of data to be access directly by hw */
+      SQ_NUM_DESC;  // maximum size of data to be access directly by hw
   void *buf;
   buf = malloc(buf_size);
   if (!buf) {
@@ -149,7 +149,7 @@ int main() {
     exit(1);
   }
 
-  /* 10. Register the user memory so it can be accessed by the HW directly */
+  // 10. Register the user memory so it can be accessed by the HW directly
   struct ibv_mr *mr;
   mr = ibv_reg_mr(pd, buf, buf_size, IBV_ACCESS_LOCAL_WRITE);
   if (!mr) {
@@ -164,43 +164,37 @@ int main() {
   int msgs_completed;
   struct ibv_wc wc;
 
-  /* scatter/gather entry describes location and size of data to send*/
+  // scatter/gather entry describes location and size of data to send
   sg_entry.addr = (uint64_t)buf;
   sg_entry.length = sizeof(packet);
   sg_entry.lkey = mr->lkey;
 
   memset(&wr, 0, sizeof(wr));
 
-  /*
-   * descriptor for send transaction - details:
-   *      - how many pointer to data to use
-   *      - if this is a single descriptor or a list (next == NULL single)
-   *      - if we want inline and/or completion
-   */
+  // descriptor for send transaction - details:
+  //      - how many pointer to data to use
+  //      - if this is a single descriptor or a list (next == NULL single)
+  //      - if we want inline and/or completion
   wr.num_sge = 1;
   wr.sg_list = &sg_entry;
   wr.next = NULL;
   wr.opcode = IBV_WR_SEND;
 
-  /* 10. Send Operation */
+  // 10. Send Operation
   while (1) {
-    /*
-     * inline means data will be copied to space pre-allocated in descriptor
-     * as long as it is small enough. otherwise pointer reference will be used.
-     * see max_inline_data = 512 above.
-     */
+    // inline means data will be copied to space pre-allocated in descriptor
+    // as long as it is small enough. otherwise pointer reference will be used.
+    // see max_inline_data = 512 above.
     wr.send_flags = IBV_SEND_INLINE;
 
-    /*
-     * we ask for a completion every half queue. only interested in completions
-     * to monitor progress.
-     */
+    // we ask for a completion every half queue. only interested in completions
+    // to monitor progress.
     if ((n % (SQ_NUM_DESC / 2)) == 0) {
       wr.wr_id = n;
       wr.send_flags |= IBV_SEND_SIGNALED;
     }
 
-    /* push descriptor to hardware */
+    // push descriptor to hardware
     ret = ibv_post_send(qp, &wr, &bad_wr);
     if (ret < 0) {
       fprintf(stderr, "failed in post send\n");
@@ -208,7 +202,7 @@ int main() {
     }
     n++;
 
-    /* poll for completion after half ring is posted */
+    // poll for completion after half ring is posted
     if ((n % (SQ_NUM_DESC / 2)) == 0 && n > 0) {
       msgs_completed = ibv_poll_cq(cq, 1, &wc);
       if (msgs_completed > 0) {
