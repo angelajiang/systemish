@@ -40,7 +40,6 @@ int main() {
   qp_init_attr.send_cq = cq;
   qp_init_attr.recv_cq = cq;
   qp_init_attr.cap.max_send_wr = 0;  // No send ring
-  qp_init_attr.cap.max_send_wr = 0;  // No send ring
   qp_init_attr.cap.max_recv_wr = RQ_NUM_DESC;
   qp_init_attr.cap.max_recv_sge = 1;
   qp_init_attr.qp_type = IBV_QPT_RAW_PACKET;
@@ -125,7 +124,7 @@ int main() {
   eth_flow = ibv_create_flow(qp, &flow_attr.attr);
   assert(eth_flow != nullptr);
 
-  while (1) {
+  while (true) {
     struct ibv_wc wc;
     int msgs_completed = ibv_poll_cq(cq, 1, &wc);
     if (msgs_completed > 0) {
