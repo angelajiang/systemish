@@ -9,26 +9,6 @@
 #define ENTRY_SIZE 9000  // maximum size of each send buffer
 #define SQ_NUM_DESC 512  // maximum number of sends waiting for completion
 
-// template of packet to send - in this case icmp
-#define DST_MAC 0x00, 0x01, 0x02, 0x03, 0x04, 0x05
-#define SRC_MAC 0xe4, 0x1d, 0x2d, 0xf3, 0xdd, 0xcc
-#define ETH_TYPE 0x08, 0x00
-#define IP_HDRS \
-  0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00, 0x40, 0x01, 0xaf, 0xb6
-#define SRC_IP 0x0d, 0x07, 0x38, 0x66
-#define DST_IP 0x0d, 0x07, 0x38, 0x7f
-#define IP_OPT 0x08, 0x00, 0x59, 0xd0, 0x88
-#define ICMP_HDR 0x2c, 0x00, 0x09, 0x52, 0xae, 0x96, 0x57, 0x00, 0x00
-
-char packet[] = {
-    DST_MAC, SRC_MAC, ETH_TYPE, IP_HDRS, SRC_IP, DST_IP, IP_OPT, ICMP_HDR, 0x00,
-    0x00,    0x62,    0x21,     0x0c,    0x00,   0x00,   0x00,   0x00,     0x00,
-    0x10,    0x11,    0x12,     0x13,    0x14,   0x15,   0x16,   0x17,     0x18,
-    0x19,    0x1a,    0x1b,     0x1c,    0x1d,   0x1e,   0x1f,   0x20,     0x21,
-    0x22,    0x23,    0x24,     0x25,    0x26,   0x27,   0x28,   0x29,     0x2a,
-    0x2b,    0x2c,    0x2d,     0x2e,    0x2f,   0x30,   0x31,   0x32,     0x33,
-    0x34,    0x35,    0x36,     0x37};
-
 int main() {
   int ret;
   struct ibv_device **dev_list = ibv_get_device_list(nullptr);
@@ -92,19 +72,43 @@ int main() {
   struct ibv_mr *mr = ibv_reg_mr(pd, buf, buf_size, IBV_ACCESS_LOCAL_WRITE);
   assert(mr != nullptr);
 
-  memcpy(buf, packet, sizeof(packet));
+  // Template of the packet to send
+  uint8_t DST_MAC[6] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05};
+  uint8_t SRC_MAC[6] = {0xe4, 0x1d, 0x2d, 0xf3, 0xdd, 0xcc};
+  uint8_t ETH_TYPE[2] = {0x08, 0x00};
+  uint8_t IP_HDRS[12] = {0x45, 0x00, 0x00, 0x54, 0x00, 0x00,
+                         0x40, 0x00, 0x40, 0x01, 0xaf, 0xb6};
+  uint8_t SRC_IP[4] = {0x0d, 0x07, 0x38, 0x66};
+  uint8_t DST_IP[4] = {0x0d, 0x07, 0x38, 0x7f};
+  uint8_t IP_OPT[5] = {0x08, 0x00, 0x59, 0xd0, 0x88};
+  uint8_t ICMP_HDR[9] = {0x2c, 0x00, 0x09, 0x52, 0xae, 0x96, 0x57, 0x00, 0x00};
+
+  char packet[150];
+  size_t idx = 0;
+  memcpy(&packet[idx], DST_MAC, 6);
+  idx += 6;
+  memcpy(&packet[idx], SRC_MAC, 6);
+  idx += 6;
+  memcpy(&packet[idx], ETH_TYPE, 2);
+  idx += 2;
+  memcpy(&packet[idx], IP_HDRS, 12);
+  idx += 12;
+  memcpy(&packet[idx], SRC_IP, 4);
+  idx += 4;
+  memcpy(&packet[idx], DST_IP, 4);
+  idx += 4;
+  memcpy(&packet[idx], IP_OPT, 5);
+  idx += 5;
+  memcpy(&packet[idx], ICMP_HDR, 9);
+  idx += 9;
 
   struct ibv_sge sg_entry;
-  struct ibv_send_wr wr, *bad_wr;
-  int msgs_completed;
-  struct ibv_wc wc;
-
   sg_entry.addr = reinterpret_cast<uint64_t>(buf);
   sg_entry.length = sizeof(packet);
   sg_entry.lkey = mr->lkey;
 
+  struct ibv_send_wr wr;
   memset(&wr, 0, sizeof(wr));
-
   wr.num_sge = 1;
   wr.sg_list = &sg_entry;
   wr.next = nullptr;
@@ -112,6 +116,7 @@ int main() {
 
   // Do SENDS
   int n = 0;
+  int msgs_completed;
   while (true) {
     wr.send_flags = IBV_SEND_INLINE;
 
@@ -120,6 +125,7 @@ int main() {
       wr.send_flags |= IBV_SEND_SIGNALED;
     }
 
+    struct ibv_send_wr *bad_wr;
     ret = ibv_post_send(qp, &wr, &bad_wr);
     if (ret < 0) {
       fprintf(stderr, "Failed in post send\n");
@@ -129,6 +135,7 @@ int main() {
 
     // poll for completion after half ring is posted
     if ((n % (SQ_NUM_DESC / 2)) == 0 && n > 0) {
+      struct ibv_wc wc;
       msgs_completed = ibv_poll_cq(cq, 1, &wc);
       if (msgs_completed > 0) {
         printf("completed message %ld\n", wc.wr_id);

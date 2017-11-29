@@ -6,16 +6,12 @@
 #include <unistd.h>
 
 #define PORT_NUM 1
+#define ENTRY_SIZE 9000
+#define RQ_NUM_DESC 512
 
-#define ENTRY_SIZE \
-  9000  // The maximum size of each received packet - set to jumbo frame
-#define RQ_NUM_DESC \
-  512  // The maximum receive ring length without processing \
-
-// The MAC we are listening to. In case your setup is via a network switch, you
-// may need to change the MAC address to suit the network port MAC
-#define DEST_MAC \
-  { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05 }
+void copy_mac(uint8_t dst_mac[6], const uint8_t src_mac[6]) {
+  for (int i = 0; i < 6; i++) dst_mac[i] = src_mac[i];
+}
 
 int main() {
   int ret;
@@ -89,39 +85,44 @@ int main() {
     ibv_post_recv(qp, &wr, &bad_wr);
   }
 
-  // 12. Register steering rule to intercept packet to DEST_MAC and place packet
+  // Register steering rule to intercept packet to DEST_MAC and place packet
   // in ring pointed by ->qp
-  struct raw_eth_flow_attr {
-    struct ibv_flow_attr attr;
-    struct ibv_flow_spec_eth spec_eth;
-  } __attribute__((packed)) flow_attr;
+  uint8_t DEST_MAC[6] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05};
+  uint8_t SRC_MAC[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  uint8_t MASK_MAC[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-  memset(&flow_attr, 0, sizeof(flow_attr));
+  constexpr size_t flow_rule_size =
+      sizeof(struct ibv_flow_attr) + sizeof(ibv_flow_spec_eth);
+  uint8_t flow_rule[flow_rule_size];
+  memset(flow_rule, 0, flow_rule_size);
 
-  flow_attr.attr.comp_mask = 0;
-  flow_attr.attr.type = IBV_FLOW_ATTR_NORMAL;
-  flow_attr.attr.size = sizeof(flow_attr);
-  flow_attr.attr.priority = 0;
-  flow_attr.attr.num_of_specs = 1;
-  flow_attr.attr.port = PORT_NUM;
-  flow_attr.attr.flags = 0;
+  auto *flow_attr = reinterpret_cast<struct ibv_flow_attr *>(flow_rule);
+  flow_attr->comp_mask = 0;
+  flow_attr->type = IBV_FLOW_ATTR_NORMAL;
+  flow_attr->size = sizeof(flow_attr);  // XXX: Check
+  flow_attr->priority = 0;
+  flow_attr->num_of_specs = 1;
+  flow_attr->port = PORT_NUM;
+  flow_attr->flags = 0;
 
-  flow_attr.spec_eth.type =
-      static_cast<enum ibv_flow_spec_type>(IBV_EXP_FLOW_SPEC_ETH);
-  flow_attr.spec_eth.size = sizeof(struct ibv_flow_spec_eth);
-  flow_attr.spec_eth.val.dst_mac = DEST_MAC;
-  flow_attr.spec_eth.val.src_mac = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  flow_attr.spec_eth.val.ether_type = 0;
-  flow_attr.spec_eth.val.vlan_tag = 0;
+  auto *spec_eth = reinterpret_cast<struct ibv_flow_spec_eth *>(
+      flow_rule + sizeof(struct ibv_flow_attr));
 
-  flow_attr.spec_eth.mask.src_mac = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-  flow_attr.spec_eth.mask.dst_mac = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-  flow_attr.spec_eth.mask.ether_type = 0;
-  flow_attr.spec_eth.mask.vlan_tag = 0;
+  spec_eth->type = static_cast<enum ibv_flow_spec_type>(IBV_EXP_FLOW_SPEC_ETH);
+  spec_eth->size = sizeof(struct ibv_flow_spec_eth);
+  copy_mac(spec_eth->val.dst_mac, DEST_MAC);
+  copy_mac(spec_eth->val.src_mac, SRC_MAC);
+  spec_eth->val.ether_type = 0;
+  spec_eth->val.vlan_tag = 0;
+
+  copy_mac(spec_eth->mask.src_mac, MASK_MAC);
+  copy_mac(spec_eth->mask.dst_mac, MASK_MAC);
+  spec_eth->mask.ether_type = 0;
+  spec_eth->mask.vlan_tag = 0;
 
   // Create steering rule
   struct ibv_flow *eth_flow;
-  eth_flow = ibv_create_flow(qp, &flow_attr.attr);
+  eth_flow = ibv_create_flow(qp, flow_attr);
   assert(eth_flow != nullptr);
 
   while (true) {
