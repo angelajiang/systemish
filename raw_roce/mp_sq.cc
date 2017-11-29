@@ -35,7 +35,7 @@ int main() {
   int ret;
 
   // 1. Get the list of offload capable devices
-  dev_list = ibv_get_device_list(NULL);
+  dev_list = ibv_get_device_list(nullptr);
   if (!dev_list) {
     perror("Failed to get devices list");
     exit(1);
@@ -70,7 +70,7 @@ int main() {
 
   // 4. Create Complition Queue (CQ)
   struct ibv_cq *cq;
-  cq = ibv_create_cq(context, SQ_NUM_DESC, NULL, NULL, 0);
+  cq = ibv_create_cq(context, SQ_NUM_DESC, nullptr, nullptr, 0);
   if (!cq) {
     fprintf(stderr, "Couldn't create CQ %d\n", errno);
     exit(1);
@@ -79,7 +79,7 @@ int main() {
   // 5. Initialize QP
   struct ibv_qp *qp;
   struct ibv_qp_init_attr qp_init_attr = {
-      .qp_context = NULL,
+      .qp_context = nullptr,
       // report send completion to cq
       .send_cq = cq,
       .recv_cq = cq,
@@ -173,11 +173,11 @@ int main() {
 
   // descriptor for send transaction - details:
   //      - how many pointer to data to use
-  //      - if this is a single descriptor or a list (next == NULL single)
+  //      - if this is a single descriptor or a list (next == nullptr single)
   //      - if we want inline and/or completion
   wr.num_sge = 1;
   wr.sg_list = &sg_entry;
-  wr.next = NULL;
+  wr.next = nullptr;
   wr.opcode = IBV_WR_SEND;
 
   // 10. Send Operation

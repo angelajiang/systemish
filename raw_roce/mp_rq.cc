@@ -18,83 +18,37 @@
   { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05 }
 
 int main() {
-  struct ibv_device **dev_list;
-  struct ibv_device *ib_dev;
-  struct ibv_context *context;
-  struct ibv_pd *pd;
   int ret;
+  struct ibv_device **dev_list = ibv_get_device_list(nullptr);
+  assert(dev_list != nullptr);
 
-  // Get the list of offload capable devices
-  dev_list = ibv_get_device_list(NULL);
-  if (!dev_list) {
-    perror("Failed to get IB devices list");
-    exit(1);
-  }
+  struct ibv_device *ib_dev = dev_list[0];
+  assert(ib_dev != nullptr);
 
-  // 1. Get Device
-  // In this example, we will use the first adapter (device) we find on the list
-  // (dev_list[0]) . You may change the code in case you have a setup with more
-  // than one adapter installed.
-  ib_dev = dev_list[0];
-  if (!ib_dev) {
-    fprintf(stderr, "IB device not found\n");
-    exit(1);
-  }
+  struct ibv_context *context = ibv_open_device(ib_dev);
+  assert(context != nullptr);
 
-  // 2. Get the device context
-  // Get context to device. The context is a descriptor and needed for resource
-  // tracking and operations
-  context = ibv_open_device(ib_dev);
-  if (!context) {
-    fprintf(stderr, "Couldn't get context for %s\n",
-            ibv_get_device_name(ib_dev));
-    exit(1);
-  }
+  struct ibv_pd *pd = ibv_alloc_pd(context);
+  assert(pd != nullptr);
 
-  // 3. Allocate Protection Domain
-  // Allocate a protection domain to group memory regions (MR) and rings
-  pd = ibv_alloc_pd(context);
-  if (!pd) {
-    fprintf(stderr, "Couldn't allocate PD\n");
-    exit(1);
-  }
+  struct ibv_cq *cq = ibv_create_cq(context, RQ_NUM_DESC, nullptr, nullptr, 0);
+  assert(cq != nullptr);
 
-  // 4. Create Complition Queue (CQ)
-  struct ibv_cq *cq;
-  cq = ibv_create_cq(context, RQ_NUM_DESC, NULL, NULL, 0);
-  if (!cq) {
-    fprintf(stderr, "Couldn't create CQ %d\n", errno);
-    exit(1);
-  }
+  struct ibv_qp_init_attr qp_init_attr;
+  memset(&qp_init_attr, 0, sizeof(qp_init_attr));
+  qp_init_attr.qp_context = nullptr;
+  qp_init_attr.send_cq = cq;
+  qp_init_attr.recv_cq = cq;
+  qp_init_attr.cap.max_send_wr = 0;  // No send ring
+  qp_init_attr.cap.max_send_wr = 0;  // No send ring
+  qp_init_attr.cap.max_recv_wr = RQ_NUM_DESC;
+  qp_init_attr.cap.max_recv_sge = 1;
+  qp_init_attr.qp_type = IBV_QPT_RAW_PACKET;
 
-  // 5. Initialize QP
-  struct ibv_qp *qp;
-  struct ibv_qp_init_attr qp_init_attr = {
-      .qp_context = NULL,
-      // report receive completion to cq
-      .send_cq = cq,
-      .recv_cq = cq,
+  struct ibv_qp *qp = ibv_create_qp(pd, &qp_init_attr);
+  assert(qp != nullptr);
 
-      .cap =
-          {
-              // no send ring
-              .max_send_wr = 0,
-              // maximum number of packets in ring
-              .max_recv_wr = RQ_NUM_DESC,
-              // only one pointer per descriptor
-              .max_recv_sge = 1,
-          },
-      .qp_type = IBV_QPT_RAW_PACKET,
-  };
-
-  // 6. Create Queue Pair (QP) - Receive Ring
-  qp = ibv_create_qp(pd, &qp_init_attr);
-  if (!qp) {
-    fprintf(stderr, "Couldn't create RSS QP\n");
-    exit(1);
-  }
-
-  // 7. Initialize the QP (receive ring) and assign a port
+  // Initialize the QP and assign a port
   struct ibv_qp_attr qp_attr;
   int qp_flags;
   memset(&qp_attr, 0, sizeof(qp_attr));
@@ -102,65 +56,37 @@ int main() {
   qp_attr.qp_state = IBV_QPS_INIT;
   qp_attr.port_num = 1;
   ret = ibv_modify_qp(qp, &qp_attr, qp_flags);
-  if (ret < 0) {
-    fprintf(stderr, "failed modify qp to init\n");
-    exit(1);
-  }
-  memset(&qp_attr, 0, sizeof(qp_attr));
+  assert(ret >= 0);
 
-  // 8. Move ring state to ready to receive, this is needed in order to be able
-  // to receive packets
+  // Move to RTR
+  memset(&qp_attr, 0, sizeof(qp_attr));
   qp_flags = IBV_QP_STATE;
   qp_attr.qp_state = IBV_QPS_RTR;
   ret = ibv_modify_qp(qp, &qp_attr, qp_flags);
-  if (ret < 0) {
-    fprintf(stderr, "failed modify qp to receive\n");
-    exit(1);
-  }
+  assert(ret >= 0);
 
-  // 9. Allocate Memory
-  int buf_size =
-      ENTRY_SIZE *
-      RQ_NUM_DESC;  // maximum size of data to be accessed by hardware
-  void *buf;
-  buf = malloc(buf_size);
-  if (!buf) {
-    fprintf(stderr, "Coudln't allocate memory\n");
-    exit(1);
-  }
+  // Register RX ring memory
+  size_t buf_size = ENTRY_SIZE * RQ_NUM_DESC;
+  void *buf = malloc(buf_size);
+  assert(buf != nullptr);
 
-  // 10. Register the user memory so it can be accessed by the HW directly
-  struct ibv_mr *mr;
-  mr = ibv_reg_mr(pd, buf, buf_size, IBV_ACCESS_LOCAL_WRITE);
-  if (!mr) {
-    fprintf(stderr, "Couldn't register mr\n");
-    exit(1);
-  }
+  struct ibv_mr *mr = ibv_reg_mr(pd, buf, buf_size, IBV_ACCESS_LOCAL_WRITE);
+  assert(mr != nullptr);
 
-  // 11. Attach all buffers to the ring
-  int n;
-  struct ibv_sge sg_entry;
+  // Attach all buffers to the ring
+  struct ibv_sge sge;
   struct ibv_recv_wr wr, *bad_wr;
 
   // pointer to packet buffer size and memory key of each packet buffer
-  sg_entry.length = ENTRY_SIZE;
-  sg_entry.lkey = mr->lkey;
-
-  // descriptor for receive transaction - details:
-  //      - how many pointers to receive buffers to use
-  //      - if this is a single descriptor or a list (next == NULL single)
+  sge.length = ENTRY_SIZE;
+  sge.lkey = mr->lkey;
   wr.num_sge = 1;
-  wr.sg_list = &sg_entry;
-  wr.next = NULL;
+  wr.sg_list = &sge;
+  wr.next = nullptr;
 
-  for (n = 0; n < RQ_NUM_DESC; n++) {
-    // each descriptor points to max MTU size buffer
-    sg_entry.addr = (uint64_t)buf + ENTRY_SIZE * n;
-
-    // index of descriptor returned when packet arrives
+  for (size_t n = 0; n < RQ_NUM_DESC; n++) {
+    sge.addr = reinterpret_cast<uint64_t>(buf) + ENTRY_SIZE * n;
     wr.wr_id = n;
-
-    // post receive buffer to ring
     ibv_post_recv(qp, &wr, &bad_wr);
   }
 
@@ -169,57 +95,43 @@ int main() {
   struct raw_eth_flow_attr {
     struct ibv_flow_attr attr;
     struct ibv_flow_spec_eth spec_eth;
-  } __attribute__((packed)) flow_attr = {
-      .attr =
-          {
-              .comp_mask = 0,
-              .type = IBV_FLOW_ATTR_NORMAL,
-              .size = sizeof(flow_attr),
-              .priority = 0,
-              .num_of_specs = 1,
-              .port = PORT_NUM,
-              .flags = 0,
-          },
-      .spec_eth = {.type = IBV_EXP_FLOW_SPEC_ETH,
-                   .size = sizeof(struct ibv_flow_spec_eth),
-                   .val =
-                       {
-                           .dst_mac = DEST_MAC,
-                           .src_mac = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-                           .ether_type = 0,
-                           .vlan_tag = 0,
-                       },
-                   .mask = {
-                       .dst_mac = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-                       .src_mac = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-                       .ether_type = 0,
-                       .vlan_tag = 0,
-                   }}};
+  } __attribute__((packed)) flow_attr;
 
-  // 13. Create steering rule
+  memset(&flow_attr, 0, sizeof(flow_attr));
+
+  flow_attr.attr.comp_mask = 0;
+  flow_attr.attr.type = IBV_FLOW_ATTR_NORMAL;
+  flow_attr.attr.size = sizeof(flow_attr);
+  flow_attr.attr.priority = 0;
+  flow_attr.attr.num_of_specs = 1;
+  flow_attr.attr.port = PORT_NUM;
+  flow_attr.attr.flags = 0;
+
+  flow_attr.spec_eth.type =
+      static_cast<enum ibv_flow_spec_type>(IBV_EXP_FLOW_SPEC_ETH);
+  flow_attr.spec_eth.size = sizeof(struct ibv_flow_spec_eth);
+  flow_attr.spec_eth.val.dst_mac = DEST_MAC;
+  flow_attr.spec_eth.val.src_mac = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  flow_attr.spec_eth.val.ether_type = 0;
+  flow_attr.spec_eth.val.vlan_tag = 0;
+
+  flow_attr.spec_eth.mask.src_mac = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  flow_attr.spec_eth.mask.dst_mac = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  flow_attr.spec_eth.mask.ether_type = 0;
+  flow_attr.spec_eth.mask.vlan_tag = 0;
+
+  // Create steering rule
   struct ibv_flow *eth_flow;
   eth_flow = ibv_create_flow(qp, &flow_attr.attr);
-  if (!eth_flow) {
-    fprintf(stderr, "Couldn't attach steering flow\n");
-    exit(1);
-  }
-
-  // 14. Wait for CQ event upon message received, and print a message
-  int msgs_completed;
-  struct ibv_wc wc;
+  assert(eth_flow != nullptr);
 
   while (1) {
-    // wait for completion
-    msgs_completed = ibv_poll_cq(cq, 1, &wc);
+    struct ibv_wc wc;
+    int msgs_completed = ibv_poll_cq(cq, 1, &wc);
     if (msgs_completed > 0) {
-      // completion includes:
-      //   -status of descriptor
-      //   -index of descriptor completing
-      //   -size of the incoming packets
       printf("message %ld received size %d\n", wc.wr_id, wc.byte_len);
-      sg_entry.addr = (uint64_t)buf + wc.wr_id * ENTRY_SIZE;
+      sge.addr = reinterpret_cast<uint64_t>(buf) + wc.wr_id * ENTRY_SIZE;
       wr.wr_id = wc.wr_id;
-      // after processed need to post back buffer
       ibv_post_recv(qp, &wr, &bad_wr);
     } else if (msgs_completed < 0) {
       printf("Polling error\n");
@@ -228,6 +140,5 @@ int main() {
   }
 
   printf("We are done\n");
-
   return 0;
 }
