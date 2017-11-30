@@ -13,8 +13,8 @@
 
 /* The MAC we are listening to. In case your setup is via a network switch, you
  * may need to change the MAC address to suit the network port MAC */
-#define DEST_MAC \
-  { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05 }
+#define DEST_MAC {0xec, 0x0d, 0x9a, 0x7b, 0xd7, 0xd6}
+//#define DEST_MAC {0xd6, 0xd7, 0x7b, 0x9a, 0x0d, 0xec}
 
 int main() {
   struct ibv_device **dev_list;
