@@ -63,6 +63,10 @@ function a() {
 	ssh akalianode-$1.RDMA.fawn.apt.emulab.net
 }
 
+function specialnode() {
+	ssh specialnode.RDMA.fawn.apt.emulab.net
+}
+
 function s() {
   ssh -t ops.narwhal.pdl.cmu.edu ssh akaliaNode-$1.RDMA.FAWN.narwhal.pdl.cmu.edu
 }
