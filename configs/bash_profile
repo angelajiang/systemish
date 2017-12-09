@@ -1,4 +1,5 @@
 alias ls='ls --color'
+alias sl='ls --color'
 alias src='source ~/.bash_profile'
 alias gitd='git difftool'
 alias gtid='git difftool'
@@ -18,9 +19,8 @@ export HISTFILESIZE=100000
 export HISTCONTROL=ignoreboth:erasedups
 bind '"\C-l":"\C-r"'
 
-# Add both - maybe one works!
-PATH=$PATH:/users/akalia/systemish/scripts
-PATH=$PATH:/home/akalia/systemish/scripts
+PATH=$PATH:"/usr/local/sbin:/usr/sbin:/sbin"  # I hate Debian
+PATH=$PATH:"$HOME/systemish/scripts"
 export PATH
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
