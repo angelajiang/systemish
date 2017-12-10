@@ -5,9 +5,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#define PORT_NUM 1
-#define ENTRY_SIZE 9000
-#define RQ_NUM_DESC 512
+#include "common.h"
+
+static constexpr size_t kRQDepth = 512;
 
 void copy_mac(uint8_t dst_mac[6], const uint8_t src_mac[6]) {
   for (int i = 0; i < 6; i++) dst_mac[i] = src_mac[i];
@@ -18,7 +18,7 @@ int main() {
   struct ibv_device **dev_list = ibv_get_device_list(nullptr);
   assert(dev_list != nullptr);
 
-  struct ibv_device *ib_dev = dev_list[0];
+  struct ibv_device *ib_dev = dev_list[kPortIndex];
   assert(ib_dev != nullptr);
 
   struct ibv_context *context = ibv_open_device(ib_dev);
@@ -27,7 +27,7 @@ int main() {
   struct ibv_pd *pd = ibv_alloc_pd(context);
   assert(pd != nullptr);
 
-  struct ibv_cq *cq = ibv_create_cq(context, RQ_NUM_DESC, nullptr, nullptr, 0);
+  struct ibv_cq *cq = ibv_create_cq(context, kRQDepth, nullptr, nullptr, 0);
   assert(cq != nullptr);
 
   struct ibv_qp_init_attr qp_init_attr;
@@ -36,7 +36,7 @@ int main() {
   qp_init_attr.send_cq = cq;
   qp_init_attr.recv_cq = cq;
   qp_init_attr.cap.max_send_wr = 0;  // No send ring
-  qp_init_attr.cap.max_recv_wr = RQ_NUM_DESC;
+  qp_init_attr.cap.max_recv_wr = kRQDepth;
   qp_init_attr.cap.max_recv_sge = 1;
   qp_init_attr.qp_type = IBV_QPT_RAW_PACKET;
 
@@ -61,7 +61,7 @@ int main() {
   assert(ret >= 0);
 
   // Register RX ring memory
-  size_t buf_size = ENTRY_SIZE * RQ_NUM_DESC;
+  size_t buf_size = kPktSize * kRQDepth;
   void *buf = malloc(buf_size);
   assert(buf != nullptr);
 
@@ -72,15 +72,14 @@ int main() {
   struct ibv_sge sge;
   struct ibv_recv_wr wr, *bad_wr;
 
-  // pointer to packet buffer size and memory key of each packet buffer
-  sge.length = ENTRY_SIZE;
+  sge.length = kPktSize;
   sge.lkey = mr->lkey;
   wr.num_sge = 1;
   wr.sg_list = &sge;
   wr.next = nullptr;
 
-  for (size_t n = 0; n < RQ_NUM_DESC; n++) {
-    sge.addr = reinterpret_cast<uint64_t>(buf) + ENTRY_SIZE * n;
+  for (size_t n = 0; n < kRQDepth; n++) {
+    sge.addr = reinterpret_cast<uint64_t>(buf) + kPktSize * n;
     wr.wr_id = n;
     ibv_post_recv(qp, &wr, &bad_wr);
   }
@@ -100,9 +99,10 @@ int main() {
     int msgs_completed = ibv_poll_cq(cq, 1, &wc);
     if (msgs_completed > 0) {
       printf("message %ld received size %d\n", wc.wr_id, wc.byte_len);
-      sge.addr = reinterpret_cast<uint64_t>(buf) + wc.wr_id * ENTRY_SIZE;
+      sge.addr = reinterpret_cast<uint64_t>(buf) + wc.wr_id * kPktSize;
       wr.wr_id = wc.wr_id;
-      ibv_post_recv(qp, &wr, &bad_wr);
+      int ret = ibv_post_recv(qp, &wr, &bad_wr);
+      assert(ret == 0);
     } else if (msgs_completed < 0) {
       printf("Polling error\n");
       exit(1);
