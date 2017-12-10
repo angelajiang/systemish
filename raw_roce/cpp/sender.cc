@@ -127,6 +127,8 @@ int main() {
   uint8_t packet[kPktSize] = {0};  // Minimum-sized Ethernet frame
   gen_eth_header(reinterpret_cast<eth_hdr_t *>(packet), kSrcMAC, kDstMAC,
                  static_cast<uint16_t>(kPktSize - sizeof(eth_hdr_t)));
+  for (auto u : packet) printf("%02x ", u);
+  printf("\n");
 
   struct ibv_sge sg_entry;
   sg_entry.addr = reinterpret_cast<uint64_t>(packet);
@@ -158,7 +160,7 @@ int main() {
 
     struct ibv_wc wc;
     int ret = ibv_poll_cq(cq, 1, &wc);
-    assert(ret == 0);
+    assert(ret >= 0);
   }
   return 0;
 }
