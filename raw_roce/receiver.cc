@@ -94,13 +94,32 @@ int main() {
   }
 
   // Promiscuous listening
-  struct ibv_flow_attr attr;
-  memset(&attr, 0, sizeof(attr));
-  attr.type = IBV_FLOW_ATTR_ALL_DEFAULT;
-  attr.num_of_specs = 0;
-  attr.port = 1;
-  attr.flags = 0;
-  auto *flow = ibv_create_flow(qp, &attr);
+  static constexpr size_t rule_sz =
+      sizeof(ibv_exp_flow_attr) + sizeof(ibv_exp_flow_spec_eth);
+  static_assert(rule_sz == 64, "");
+
+  uint8_t *flow_rule = new uint8_t[rule_sz];
+  memset(flow_rule, 0, rule_sz);
+
+  auto *flow_attr = reinterpret_cast<struct ibv_exp_flow_attr *>(flow_rule);
+  flow_attr->type = IBV_EXP_FLOW_ATTR_NORMAL;
+  flow_attr->size = 64;
+  flow_attr->priority = 0;
+  flow_attr->num_of_specs = 1;
+  flow_attr->port = 1;
+  flow_attr->flags = 0;
+  flow_attr->reserved = 0;
+
+  auto *flow_spec_eth = reinterpret_cast<struct ibv_exp_flow_spec_eth *>(
+      flow_rule + sizeof(ibv_exp_flow_attr));
+  static_assert(IBV_EXP_FLOW_SPEC_ETH == 0x20, "");
+  flow_spec_eth->type = IBV_EXP_FLOW_SPEC_ETH;
+  static_assert(sizeof(struct ibv_exp_flow_spec_eth) == 0x28, "");
+  flow_spec_eth->size = 0x28;
+  memcpy(flow_spec_eth->val.dst_mac, kDstMAC, 6);
+  memset(flow_spec_eth->mask.dst_mac, 0xff, 6);
+
+  auto *flow = ibv_exp_create_flow(qp, flow_attr);
   assert(flow != nullptr);
 
   printf("Listening\n");
@@ -128,46 +147,3 @@ int main() {
   printf("We are done\n");
   return 0;
 }
-
-/*
-// Register steering rule to intercept packet to DST_MAC and place packet
-// in ring pointed by ->qp
-//uint8_t DST_MAC[6] = {0xd6, 0xd7, 0x7b, 0x9a, 0x0d, 0xec};
-uint8_t DST_MAC[6] = {0xec, 0x0d, 0x9a, 0x7b, 0xd7, 0xd6};
-uint8_t SRC_MAC[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-uint8_t MASK_MAC[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-
-constexpr size_t flow_rule_size =
-    sizeof(struct ibv_flow_attr) + sizeof(ibv_flow_spec_eth);
-uint8_t flow_rule[flow_rule_size];
-memset(flow_rule, 0, flow_rule_size);
-
-auto *flow_attr = reinterpret_cast<struct ibv_flow_attr *>(flow_rule);
-flow_attr->comp_mask = 0;
-flow_attr->type = IBV_FLOW_ATTR_NORMAL;
-flow_attr->size = sizeof(flow_attr);  // XXX: Check
-flow_attr->priority = 0;
-flow_attr->num_of_specs = 1;
-flow_attr->port = PORT_NUM;
-flow_attr->flags = 0;
-
-auto *spec_eth = reinterpret_cast<struct ibv_flow_spec_eth *>(
-    flow_rule + sizeof(struct ibv_flow_attr));
-
-spec_eth->type = static_cast<enum ibv_flow_spec_type>(IBV_EXP_FLOW_SPEC_ETH);
-spec_eth->size = sizeof(struct ibv_flow_spec_eth);
-copy_mac(spec_eth->val.dst_mac, DST_MAC);
-copy_mac(spec_eth->val.src_mac, SRC_MAC);
-spec_eth->val.ether_type = 0;
-spec_eth->val.vlan_tag = 0;
-
-copy_mac(spec_eth->mask.src_mac, MASK_MAC);
-copy_mac(spec_eth->mask.dst_mac, MASK_MAC);
-spec_eth->mask.ether_type = 0;
-spec_eth->mask.vlan_tag = 0;
-
-// Create steering rule
-struct ibv_flow *eth_flow;
-eth_flow = ibv_create_flow(qp, flow_attr);
-assert(eth_flow != nullptr);
-*/
