@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <infiniband/verbs.h>
 #include <infiniband/verbs_exp.h>
 #include <stdio.h>
 #include <string.h>
@@ -28,37 +27,46 @@ int main() {
   struct ibv_pd *pd = ibv_alloc_pd(context);
   assert(pd != nullptr);
 
-  struct ibv_cq *cq = ibv_create_cq(context, kRQDepth, nullptr, nullptr, 0);
+  struct ibv_exp_cq_init_attr cq_init_attr;
+  memset(&cq_init_attr, 0, sizeof(cq_init_attr));
+  struct ibv_cq *cq =
+      ibv_exp_create_cq(context, kRQDepth, nullptr, nullptr, 0, &cq_init_attr);
   assert(cq != nullptr);
 
-  struct ibv_qp_init_attr qp_init_attr;
+  struct ibv_exp_qp_init_attr qp_init_attr;
   memset(&qp_init_attr, 0, sizeof(qp_init_attr));
-  qp_init_attr.qp_context = nullptr;
+
+  qp_init_attr.comp_mask =
+      IBV_EXP_QP_INIT_ATTR_PD | IBV_EXP_QP_INIT_ATTR_CREATE_FLAGS;
+
+  qp_init_attr.pd = pd;
   qp_init_attr.send_cq = cq;
   qp_init_attr.recv_cq = cq;
-  qp_init_attr.cap.max_send_wr = 0;  // No send ring
   qp_init_attr.cap.max_recv_wr = kRQDepth;
   qp_init_attr.cap.max_recv_sge = 1;
   qp_init_attr.qp_type = IBV_QPT_RAW_PACKET;
+  qp_init_attr.cap.max_inline_data = 60;
 
-  struct ibv_qp *qp = ibv_create_qp(pd, &qp_init_attr);
+  struct ibv_qp *qp = ibv_exp_create_qp(context, &qp_init_attr);
   assert(qp != nullptr);
 
   // Initialize the QP and assign a port
-  struct ibv_qp_attr qp_attr;
-  int qp_flags;
-  memset(&qp_attr, 0, sizeof(qp_attr));
-  qp_flags = IBV_QP_STATE | IBV_QP_PORT;
-  qp_attr.qp_state = IBV_QPS_INIT;
-  qp_attr.port_num = 1;
-  ret = ibv_modify_qp(qp, &qp_attr, qp_flags);
+  struct ibv_exp_qp_attr init_attr;
+  memset(&init_attr, 0, sizeof(init_attr));
+  init_attr.qp_state = IBV_QPS_INIT;
+  init_attr.pkey_index = 0;
+  init_attr.port_num = 1;
+  uint64_t init_comp_mask =
+      IBV_QP_STATE | IBV_QP_PKEY_INDEX | IBV_QP_PORT | IBV_QP_QKEY;
+
+  ret = ibv_exp_modify_qp(qp, &init_attr, init_comp_mask);
   assert(ret >= 0);
 
   // Move to RTR
-  memset(&qp_attr, 0, sizeof(qp_attr));
-  qp_flags = IBV_QP_STATE;
-  qp_attr.qp_state = IBV_QPS_RTR;
-  ret = ibv_modify_qp(qp, &qp_attr, qp_flags);
+  struct ibv_exp_qp_attr rtr_attr;
+  memset(&rtr_attr, 0, sizeof(rtr_attr));
+  rtr_attr.qp_state = IBV_QPS_RTR;
+  ret = ibv_exp_modify_qp(qp, &rtr_attr, IBV_QP_STATE);
   assert(ret >= 0);
 
   // Register RX ring memory
@@ -95,6 +103,7 @@ int main() {
   auto *flow = ibv_create_flow(qp, &attr);
   assert(flow != nullptr);
 
+  printf("Listening\n");
   while (true) {
     struct ibv_wc wc;
     int msgs_completed = ibv_poll_cq(cq, 1, &wc);
