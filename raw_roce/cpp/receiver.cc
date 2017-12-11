@@ -20,6 +20,7 @@ int main() {
 
   struct ibv_device *ib_dev = dev_list[kPortIndex];
   assert(ib_dev != nullptr);
+  printf("Using device %s\n", ib_dev->name);
 
   struct ibv_context *context = ibv_open_device(ib_dev);
   assert(context != nullptr);
@@ -61,25 +62,25 @@ int main() {
   assert(ret >= 0);
 
   // Register RX ring memory
-  size_t buf_size = kPktSize * kRQDepth;
-  void *buf = malloc(buf_size);
+  size_t ring_size = kRecvBufSize * kRQDepth;
+  void *buf = malloc(ring_size);
   assert(buf != nullptr);
 
-  struct ibv_mr *mr = ibv_reg_mr(pd, buf, buf_size, IBV_ACCESS_LOCAL_WRITE);
+  struct ibv_mr *mr = ibv_reg_mr(pd, buf, ring_size, IBV_ACCESS_LOCAL_WRITE);
   assert(mr != nullptr);
 
   // Attach all buffers to the ring
   struct ibv_sge sge;
-  struct ibv_recv_wr wr, *bad_wr;
-
-  sge.length = kPktSize;
+  sge.length = kRecvBufSize;
   sge.lkey = mr->lkey;
+
+  struct ibv_recv_wr wr, *bad_wr;
   wr.num_sge = 1;
   wr.sg_list = &sge;
   wr.next = nullptr;
 
   for (size_t n = 0; n < kRQDepth; n++) {
-    sge.addr = reinterpret_cast<uint64_t>(buf) + kPktSize * n;
+    sge.addr = reinterpret_cast<uint64_t>(buf) + (kRecvBufSize * n);
     wr.wr_id = n;
     ibv_post_recv(qp, &wr, &bad_wr);
   }
@@ -89,7 +90,7 @@ int main() {
   memset(&attr, 0, sizeof(attr));
   attr.type = IBV_FLOW_ATTR_ALL_DEFAULT;
   attr.num_of_specs = 0;
-  attr.port = 0;
+  attr.port = 1;
   attr.flags = 0;
   auto *flow = ibv_create_flow(qp, &attr);
   assert(flow != nullptr);
@@ -99,7 +100,13 @@ int main() {
     int msgs_completed = ibv_poll_cq(cq, 1, &wc);
     if (msgs_completed > 0) {
       printf("message %ld received size %d\n", wc.wr_id, wc.byte_len);
-      sge.addr = reinterpret_cast<uint64_t>(buf) + wc.wr_id * kPktSize;
+      sge.addr = reinterpret_cast<uint64_t>(buf) + (wc.wr_id * kRecvBufSize);
+
+      for (size_t i = 0; i < 60; i++) {
+        printf("%02x ", reinterpret_cast<uint8_t *>(sge.addr)[i]);
+      }
+      printf("\n");
+
       wr.wr_id = wc.wr_id;
       int ret = ibv_post_recv(qp, &wr, &bad_wr);
       assert(ret == 0);
