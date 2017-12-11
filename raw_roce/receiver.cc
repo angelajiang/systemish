@@ -4,48 +4,70 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "common.h"
+static size_t kPortIndex = 2;       // mlx5_0
+static size_t kPktSize = 60;        // Packet size, including headers
+static size_t kRecvBufSize = 1500;  // RECV buffer size
+static size_t kRQDepth = 512;
 
-static constexpr size_t kRQDepth = 512;
+uint8_t kDstMAC[6] = {0xec, 0x0d, 0x9a, 0x7b, 0xd7, 0xd6};
+uint8_t kSrcMAC[6] = {0xec, 0x0d, 0x9a, 0x7b, 0xd7, 0xe6};
 
 int main() {
   int ret;
-  struct ibv_device **dev_list = ibv_get_device_list(nullptr);
-  assert(dev_list != nullptr);
+  struct ibv_device **dev_list = ibv_get_device_list(NULL);
+  assert(dev_list != NULL);
 
   struct ibv_device *ib_dev = dev_list[kPortIndex];
-  assert(ib_dev != nullptr);
+  assert(ib_dev != NULL);
   printf("Using device %s\n", ib_dev->name);
 
   struct ibv_context *context = ibv_open_device(ib_dev);
-  assert(context != nullptr);
+  assert(context != NULL);
 
   struct ibv_pd *pd = ibv_alloc_pd(context);
-  assert(pd != nullptr);
+  assert(pd != NULL);
 
+  // Register RX ring memory
+  size_t ring_size = kRecvBufSize * kRQDepth;
+  void *buf = malloc(ring_size);
+  assert(buf != NULL);
+
+  struct ibv_mr *mr = ibv_reg_mr(pd, buf, ring_size, IBV_ACCESS_LOCAL_WRITE);
+  assert(mr != NULL);
+
+  // CQ
   struct ibv_exp_cq_init_attr cq_init_attr;
   memset(&cq_init_attr, 0, sizeof(cq_init_attr));
-  struct ibv_cq *cq =
-      ibv_exp_create_cq(context, kRQDepth, nullptr, nullptr, 0, &cq_init_attr);
-  assert(cq != nullptr);
 
+  struct ibv_cq *send_cq =
+      ibv_exp_create_cq(context, 512, NULL, NULL, 0, &cq_init_attr);
+  assert(send_cq != NULL);
+
+  struct ibv_cq *recv_cq = ibv_create_cq(context, 512, NULL, 0, 0);
+  assert(recv_cq != NULL);
+
+  // QP
   struct ibv_exp_qp_init_attr qp_init_attr;
-  memset(&qp_init_attr, 0, sizeof(qp_init_attr));
 
+  memset(&qp_init_attr, 0, sizeof(qp_init_attr));
   qp_init_attr.comp_mask =
       IBV_EXP_QP_INIT_ATTR_PD | IBV_EXP_QP_INIT_ATTR_CREATE_FLAGS;
 
   qp_init_attr.pd = pd;
-  qp_init_attr.send_cq = cq;
-  qp_init_attr.recv_cq = cq;
-  qp_init_attr.cap.max_recv_wr = kRQDepth;
+  qp_init_attr.send_cq = send_cq;
+  qp_init_attr.recv_cq = recv_cq;
+  qp_init_attr.cap.max_send_wr = 0;
+  qp_init_attr.cap.max_send_sge = 0;
+  qp_init_attr.cap.max_inline_data = 60;
+
+  qp_init_attr.srq = NULL;
+  qp_init_attr.cap.max_recv_wr = 512;
   qp_init_attr.cap.max_recv_sge = 1;
   qp_init_attr.qp_type = IBV_QPT_RAW_PACKET;
-  qp_init_attr.cap.max_inline_data = 60;
   qp_init_attr.exp_create_flags |= IBV_EXP_QP_CREATE_SCATTER_FCS;
 
   struct ibv_qp *qp = ibv_exp_create_qp(context, &qp_init_attr);
-  assert(qp != nullptr);
+  assert(qp != NULL);
 
   // Initialize the QP and assign a port
   struct ibv_exp_qp_attr init_attr;
@@ -66,13 +88,6 @@ int main() {
   ret = ibv_exp_modify_qp(qp, &rtr_attr, IBV_QP_STATE);
   assert(ret >= 0);
 
-  // Register RX ring memory
-  size_t ring_size = kRecvBufSize * kRQDepth;
-  void *buf = malloc(ring_size);
-  assert(buf != nullptr);
-
-  struct ibv_mr *mr = ibv_reg_mr(pd, buf, ring_size, IBV_ACCESS_LOCAL_WRITE);
-  assert(mr != nullptr);
 
   // Attach all buffers to the ring
   struct ibv_sge sge;
@@ -82,7 +97,7 @@ int main() {
   struct ibv_recv_wr wr, *bad_wr;
   wr.num_sge = 1;
   wr.sg_list = &sge;
-  wr.next = nullptr;
+  wr.next = NULL;
 
   for (size_t n = 0; n < kRQDepth; n++) {
     sge.addr = reinterpret_cast<uint64_t>(buf) + (kRecvBufSize * n);
@@ -118,12 +133,12 @@ int main() {
   memset(flow_spec_eth->mask.dst_mac, 0xff, 6);
 
   auto *flow = ibv_exp_create_flow(qp, flow_attr);
-  assert(flow != nullptr);
+  assert(flow != NULL);
 
   printf("Listening\n");
   while (true) {
     struct ibv_wc wc;
-    int msgs_completed = ibv_poll_cq(cq, 1, &wc);
+    int msgs_completed = ibv_poll_cq(recv_cq, 1, &wc);
     if (msgs_completed > 0) {
       printf("message %ld received size %d\n", wc.wr_id, wc.byte_len);
       sge.addr = reinterpret_cast<uint64_t>(buf) + (wc.wr_id * kRecvBufSize);
