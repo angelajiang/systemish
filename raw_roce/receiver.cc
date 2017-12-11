@@ -8,10 +8,6 @@
 
 static constexpr size_t kRQDepth = 512;
 
-void copy_mac(uint8_t dst_mac[6], const uint8_t src_mac[6]) {
-  for (int i = 0; i < 6; i++) dst_mac[i] = src_mac[i];
-}
-
 int main() {
   int ret;
   struct ibv_device **dev_list = ibv_get_device_list(nullptr);
@@ -46,6 +42,7 @@ int main() {
   qp_init_attr.cap.max_recv_sge = 1;
   qp_init_attr.qp_type = IBV_QPT_RAW_PACKET;
   qp_init_attr.cap.max_inline_data = 60;
+  qp_init_attr.exp_create_flags |= IBV_EXP_QP_CREATE_SCATTER_FCS;
 
   struct ibv_qp *qp = ibv_exp_create_qp(context, &qp_init_attr);
   assert(qp != nullptr);
