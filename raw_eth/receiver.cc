@@ -1,12 +1,6 @@
-#include <assert.h>
-#include <infiniband/verbs_exp.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-
 #include "common.h"
 
-void install_flow_rule(struct ibv_qp *qp) {
+void install_flow_rule(struct ibv_qp *qp, uint16_t dst_port) {
   static constexpr size_t rule_sz =
       sizeof(ibv_exp_flow_attr) + sizeof(ibv_exp_flow_spec_eth) +
       sizeof(ibv_exp_flow_spec_ipv4_ext) + sizeof(ibv_exp_flow_spec_tcp_udp);
@@ -45,16 +39,19 @@ void install_flow_rule(struct ibv_qp *qp) {
   auto *udp_spec = reinterpret_cast<struct ibv_exp_flow_spec_tcp_udp *>(buf);
   udp_spec->type = IBV_EXP_FLOW_SPEC_UDP;
   udp_spec->size = sizeof(struct ibv_exp_flow_spec_tcp_udp);
-  udp_spec->val.dst_port = htons(kDstPort);
+  udp_spec->val.dst_port = htons(dst_port);
   udp_spec->mask.dst_port = 0xffffu;
 
   auto *flow = ibv_exp_create_flow(qp, flow_attr);
   assert(flow != nullptr);
 }
 
-int main() {
+void thread_func(size_t thread_id) {
   ctrl_blk_t *cb = init_ctx(kDeviceIndex);
-  install_flow_rule(cb->qp);
+
+  uint16_t dst_port = static_cast<uint16_t>(kBaseDstPort + thread_id);
+  printf("Thread %zu listening on port %u\n", thread_id, dst_port);
+  install_flow_rule(cb->qp, dst_port);
 
   // Register RX ring memory
   size_t ring_size = kRecvBufSize * kRQDepth;
@@ -82,25 +79,35 @@ int main() {
     assert(ret == 0);
   }
 
-  printf("Listening\n");
+  printf("Thread %zu: Listening\n", thread_id);
   while (true) {
     struct ibv_wc wc;
     int msgs_completed = ibv_poll_cq(cb->recv_cq, 1, &wc);
     assert(msgs_completed >= 0);
     if (msgs_completed == 0) continue;
 
-    printf("Message %ld received size %d\n", wc.wr_id, wc.byte_len);
-    sge.addr = reinterpret_cast<uint64_t>(buf) + (wc.wr_id * kRecvBufSize);
+    printf("Thread %zu: Message %ld received size %d\n",
+           thread_id, wc.wr_id, wc.byte_len);
 
     for (size_t i = 0; i < 60; i++) {
       printf("%02x ", reinterpret_cast<uint8_t *>(sge.addr)[i]);
     }
     printf("\n");
 
+    sge.addr = reinterpret_cast<uint64_t>(buf) + (wc.wr_id * kRecvBufSize);
     wr.wr_id = wc.wr_id;
     int ret = ibv_post_recv(cb->qp, &wr, &bad_wr);
     assert(ret == 0);
   }
+}
+
+int main() {
+  std::thread thread_arr[kReceiverThreads];
+  for (size_t i = 0; i < kReceiverThreads; i++) {
+    thread_arr[i] = std::thread(thread_func, i);
+  }
+
+  for (auto &t : thread_arr) t.join();
 
   printf("We are done\n");
   return 0;

@@ -11,7 +11,8 @@ void format_packet(uint8_t *buf) {
                   kIPHdrProtocol, kDataSize);
 
   buf += sizeof(ipv4_hdr_t);
-  gen_udp_header(reinterpret_cast<udp_hdr_t *>(buf), kSrcPort, kDstPort,
+  uint16_t src_port = 0xffffu;
+  gen_udp_header(reinterpret_cast<udp_hdr_t *>(buf), src_port, kBaseDstPort,
                  kDataSize);
 }
 

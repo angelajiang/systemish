@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <thread>
 
 static constexpr size_t kDeviceIndex = 2;
 static constexpr size_t kPortIndex = 2;       // mlx5_0
@@ -19,13 +20,14 @@ static constexpr size_t kRQDepth = 512;
 static constexpr uint16_t kIPEtherType = 0x800;
 static constexpr uint16_t kIPHdrProtocol = 0x11;
 
+static constexpr size_t kReceiverThreads = 2;
+
 uint8_t kDstMAC[6] = {0xec, 0x0d, 0x9a, 0x7b, 0xd7, 0xd6};
 char kDstIP[] = "192.168.1.250";
-uint16_t kSrcPort = 3185;
 
 uint8_t kSrcMAC[6] = {0xec, 0x0d, 0x9a, 0x7b, 0xd7, 0xe6};
 char kSrcIP[] = "192.168.1.251";
-uint16_t kDstPort = 3185;
+uint16_t kBaseDstPort = 3185;  // Receiver thread i uses port (kBaseDstPort + i)
 
 struct ctrl_blk_t {
   struct ibv_device *ib_dev;
