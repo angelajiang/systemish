@@ -67,22 +67,20 @@ int main() {
   while (true) {
     struct ibv_wc wc;
     int msgs_completed = ibv_poll_cq(cb->recv_cq, 1, &wc);
-    if (msgs_completed > 0) {
-      printf("message %ld received size %d\n", wc.wr_id, wc.byte_len);
-      sge.addr = reinterpret_cast<uint64_t>(buf) + (wc.wr_id * kRecvBufSize);
+    assert(msgs_completed >= 0);
+    if (msgs_completed == 0) continue;
 
-      for (size_t i = 0; i < 60; i++) {
-        printf("%02x ", reinterpret_cast<uint8_t *>(sge.addr)[i]);
-      }
-      printf("\n");
+    printf("Message %ld received size %d\n", wc.wr_id, wc.byte_len);
+    sge.addr = reinterpret_cast<uint64_t>(buf) + (wc.wr_id * kRecvBufSize);
 
-      wr.wr_id = wc.wr_id;
-      int ret = ibv_post_recv(cb->qp, &wr, &bad_wr);
-      assert(ret == 0);
-    } else if (msgs_completed < 0) {
-      printf("Polling error\n");
-      exit(1);
+    for (size_t i = 0; i < 60; i++) {
+      printf("%02x ", reinterpret_cast<uint8_t *>(sge.addr)[i]);
     }
+    printf("\n");
+
+    wr.wr_id = wc.wr_id;
+    int ret = ibv_post_recv(cb->qp, &wr, &bad_wr);
+    assert(ret == 0);
   }
 
   printf("We are done\n");
