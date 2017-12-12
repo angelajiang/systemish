@@ -8,6 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 
+static constexpr size_t kDeviceIndex = 2;
 static constexpr size_t kPortIndex = 2;       // mlx5_0
 static constexpr size_t kPktSize = 60;        // Packet size, including headers
 static constexpr size_t kRecvBufSize = 1500;  // RECV buffer size
@@ -15,13 +16,14 @@ static constexpr size_t kRecvBufSize = 1500;  // RECV buffer size
 static constexpr size_t kSQDepth = 512;
 static constexpr size_t kRQDepth = 512;
 
-static constexpr size_t kDeviceIndex = 2;
+static constexpr uint16_t kIpEtherType = 0x800;
+static constexpr uint16_t kProtocol = 0x11;
 
 uint8_t kDstMAC[6] = {0xec, 0x0d, 0x9a, 0x7b, 0xd7, 0xd6};
-uint8_t kDstIP[4] = {192, 168, 1, 250};
+char kDstIP[] = "192.168.1.250";
 
 uint8_t kSrcMAC[6] = {0xec, 0x0d, 0x9a, 0x7b, 0xd7, 0xe6};
-uint8_t kSrcIP[4] = {192, 168, 1, 251};
+char kSrcIP[] = "192.168.1.251";
 
 struct ctrl_blk_t {
   struct ibv_device *ib_dev;
@@ -118,12 +120,15 @@ struct ipv4_hdr_t {
   uint8_t ttl;
   uint8_t protocol;
   uint16_t check;
-  uint32_t saddr;
-  uint32_t daddr;
+  uint32_t src_ip;
+  uint32_t dst_ip;
 } __attribute__((packed));
 
-int ip_from_str(char *ip, uint32_t *addr) {
-  return inet_pton(AF_INET, ip, addr);
+uint32_t ip_from_str(char *ip) {
+  uint32_t addr;
+  int ret = inet_pton(AF_INET, ip, &addr);
+  assert(ret == 1);
+  return addr;
 }
 
 static uint16_t ip_checksum(void *buf, size_t hdr_len) {
@@ -139,7 +144,7 @@ static uint16_t ip_checksum(void *buf, size_t hdr_len) {
   return (~sum);
 }
 
-void gen_ipv4_header(void *ip_header_buffer, uint32_t *saddr, uint32_t *daddr,
+void gen_ipv4_header(void *ip_header_buffer, uint32_t src_ip, uint32_t dst_ip,
                      uint8_t protocol, int pkt_size) {
   ipv4_hdr_t ip_header;
   memset(&ip_header, 0, sizeof(ip_header));
@@ -152,8 +157,8 @@ void gen_ipv4_header(void *ip_header_buffer, uint32_t *saddr, uint32_t *daddr,
   ip_header.frag_off = htons(0);
   ip_header.ttl = 128;
   ip_header.protocol = protocol;
-  ip_header.saddr = *saddr;
-  ip_header.daddr = *daddr;
+  ip_header.src_ip = src_ip;
+  ip_header.dst_ip = dst_ip;
   ip_header.check = ip_checksum(&ip_header, sizeof(ip_header));
   memcpy(ip_header_buffer, &ip_header, sizeof(ip_header));
 }
