@@ -14,37 +14,37 @@ uint8_t kSrcMAC[6] = {0xec, 0x0d, 0x9a, 0x7b, 0xd7, 0xe6};
 
 int main() {
   int ret;
-  struct ibv_device **dev_list = ibv_get_device_list(NULL);
-  assert(dev_list != NULL);
+  struct ibv_device **dev_list = ibv_get_device_list(nullptr);
+  assert(dev_list != nullptr);
 
   struct ibv_device *ib_dev = dev_list[kPortIndex];
-  assert(ib_dev != NULL);
+  assert(ib_dev != nullptr);
   printf("Using device %s\n", ib_dev->name);
 
   struct ibv_context *context = ibv_open_device(ib_dev);
-  assert(context != NULL);
+  assert(context != nullptr);
 
   struct ibv_pd *pd = ibv_alloc_pd(context);
-  assert(pd != NULL);
+  assert(pd != nullptr);
 
   // Register RX ring memory
   size_t ring_size = kRecvBufSize * kRQDepth;
   void *buf = malloc(ring_size);
-  assert(buf != NULL);
+  assert(buf != nullptr);
 
   struct ibv_mr *mr = ibv_reg_mr(pd, buf, ring_size, IBV_ACCESS_LOCAL_WRITE);
-  assert(mr != NULL);
+  assert(mr != nullptr);
 
   // CQ
   struct ibv_exp_cq_init_attr cq_init_attr;
   memset(&cq_init_attr, 0, sizeof(cq_init_attr));
 
   struct ibv_cq *send_cq =
-      ibv_exp_create_cq(context, 512, NULL, NULL, 0, &cq_init_attr);
-  assert(send_cq != NULL);
+      ibv_exp_create_cq(context, kRQDepth, nullptr, nullptr, 0, &cq_init_attr);
+  assert(send_cq != nullptr);
 
-  struct ibv_cq *recv_cq = ibv_create_cq(context, 512, NULL, 0, 0);
-  assert(recv_cq != NULL);
+  struct ibv_cq *recv_cq = ibv_create_cq(context, kRQDepth, nullptr, 0, 0);
+  assert(recv_cq != nullptr);
 
   // QP
   struct ibv_exp_qp_init_attr qp_init_attr;
@@ -60,25 +60,21 @@ int main() {
   qp_init_attr.cap.max_send_sge = 0;
   qp_init_attr.cap.max_inline_data = 60;
 
-  qp_init_attr.srq = NULL;
-  qp_init_attr.cap.max_recv_wr = 512;
+  qp_init_attr.srq = nullptr;
+  qp_init_attr.cap.max_recv_wr = kRQDepth;
   qp_init_attr.cap.max_recv_sge = 1;
   qp_init_attr.qp_type = IBV_QPT_RAW_PACKET;
   qp_init_attr.exp_create_flags |= IBV_EXP_QP_CREATE_SCATTER_FCS;
 
   struct ibv_qp *qp = ibv_exp_create_qp(context, &qp_init_attr);
-  assert(qp != NULL);
+  assert(qp != nullptr);
 
   // Initialize the QP and assign a port
   struct ibv_exp_qp_attr init_attr;
   memset(&init_attr, 0, sizeof(init_attr));
   init_attr.qp_state = IBV_QPS_INIT;
-  init_attr.pkey_index = 0;
   init_attr.port_num = 1;
-  uint64_t init_comp_mask =
-      IBV_QP_STATE | IBV_QP_PKEY_INDEX | IBV_QP_PORT | IBV_QP_QKEY;
-
-  ret = ibv_exp_modify_qp(qp, &init_attr, init_comp_mask);
+  ret = ibv_exp_modify_qp(qp, &init_attr, IBV_QP_STATE | IBV_QP_PORT);
   assert(ret >= 0);
 
   // Move to RTR
@@ -88,7 +84,6 @@ int main() {
   ret = ibv_exp_modify_qp(qp, &rtr_attr, IBV_QP_STATE);
   assert(ret >= 0);
 
-
   // Attach all buffers to the ring
   struct ibv_sge sge;
   sge.length = kRecvBufSize;
@@ -97,7 +92,7 @@ int main() {
   struct ibv_recv_wr wr, *bad_wr;
   wr.num_sge = 1;
   wr.sg_list = &sge;
-  wr.next = NULL;
+  wr.next = nullptr;
 
   for (size_t n = 0; n < kRQDepth; n++) {
     sge.addr = reinterpret_cast<uint64_t>(buf) + (kRecvBufSize * n);
@@ -106,7 +101,6 @@ int main() {
     assert(ret == 0);
   }
 
-  // Promiscuous listening
   static constexpr size_t rule_sz =
       sizeof(ibv_exp_flow_attr) + sizeof(ibv_exp_flow_spec_eth);
   static_assert(rule_sz == 64, "");
@@ -133,7 +127,7 @@ int main() {
   memset(flow_spec_eth->mask.dst_mac, 0xff, 6);
 
   auto *flow = ibv_exp_create_flow(qp, flow_attr);
-  assert(flow != NULL);
+  assert(flow != nullptr);
 
   printf("Listening\n");
   while (true) {
