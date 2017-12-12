@@ -1,11 +1,6 @@
 #include "common.h"
 
-int main() {
-  ctrl_blk_t *cb = init_ctx(kDeviceIndex);
-
-  // Generate a minimum-sized UDP packet
-  uint8_t packet[kPktSize] = {0};
-  uint8_t *buf = packet;
+void format_packet(uint8_t *buf) {
   gen_eth_header(reinterpret_cast<eth_hdr_t *>(buf), kSrcMAC, kDstMAC,
                  kIpEtherType);
 
@@ -13,14 +8,28 @@ int main() {
   uint32_t src_ip = ip_from_str(kSrcIP);
   uint32_t dst_ip = ip_from_str(kDstIP);
   gen_ipv4_header(reinterpret_cast<ipv4_hdr_t *>(buf), src_ip, dst_ip,
-                  kProtocol, kPktSize - sizeof(eth_hdr_t));
+                  kProtocol, kDataSize);
+
+  buf += sizeof(ipv4_hdr_t);
+  gen_udp_header(reinterpret_cast<udp_hdr_t *>(buf), kSrcPort, kDstPort,
+                 kDataSize);
+}
+
+int main() {
+  ctrl_blk_t *cb = init_ctx(kDeviceIndex);
+
+  static constexpr size_t pkt_sz =
+      sizeof(eth_hdr_t) + sizeof(ipv4_hdr_t) + sizeof(udp_hdr_t) + kDataSize;
+
+  uint8_t packet[pkt_sz] = {0};
+  format_packet(packet);
 
   for (auto u : packet) printf("%02x ", u);
   printf("\n");
 
   struct ibv_sge sg_entry;
   sg_entry.addr = reinterpret_cast<uint64_t>(packet);
-  sg_entry.length = sizeof(packet);
+  sg_entry.length = pkt_sz;
   sg_entry.lkey = 0;
 
   struct ibv_send_wr wr;
