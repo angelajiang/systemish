@@ -2,13 +2,13 @@
 
 void format_packet(uint8_t *buf) {
   gen_eth_header(reinterpret_cast<eth_hdr_t *>(buf), kSrcMAC, kDstMAC,
-                 kIpEtherType);
+                 kIPEtherType);
 
   buf += sizeof(eth_hdr_t);
   uint32_t src_ip = ip_from_str(kSrcIP);
   uint32_t dst_ip = ip_from_str(kDstIP);
   gen_ipv4_header(reinterpret_cast<ipv4_hdr_t *>(buf), src_ip, dst_ip,
-                  kProtocol, kDataSize);
+                  kIPHdrProtocol, kDataSize);
 
   buf += sizeof(ipv4_hdr_t);
   gen_udp_header(reinterpret_cast<udp_hdr_t *>(buf), kSrcPort, kDstPort,

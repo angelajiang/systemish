@@ -16,8 +16,8 @@ static constexpr size_t kRecvBufSize = 1500;  // RECV buffer size
 static constexpr size_t kSQDepth = 512;
 static constexpr size_t kRQDepth = 512;
 
-static constexpr uint16_t kIpEtherType = 0x800;
-static constexpr uint16_t kProtocol = 0x11;
+static constexpr uint16_t kIPEtherType = 0x800;
+static constexpr uint16_t kIPHdrProtocol = 0x11;
 
 uint8_t kDstMAC[6] = {0xec, 0x0d, 0x9a, 0x7b, 0xd7, 0xd6};
 char kDstIP[] = "192.168.1.250";
