@@ -27,7 +27,9 @@ char kDstIP[] = "192.168.1.250";
 
 uint8_t kSrcMAC[6] = {0xec, 0x0d, 0x9a, 0x7b, 0xd7, 0xe6};
 char kSrcIP[] = "192.168.1.251";
-uint16_t kBaseDstPort = 3185;  // Receiver thread i uses port (kBaseDstPort + i)
+
+// Receiver thread i uses port (kBaseDstPort + i)
+static constexpr uint16_t kBaseDstPort = 3185;
 
 struct ctrl_blk_t {
   struct ibv_device *ib_dev;
@@ -59,10 +61,10 @@ struct ipv4_hdr_t {
 } __attribute__((packed));
 
 struct udp_hdr_t {
-  uint16_t uh_sport;
-  uint16_t uh_dport;
-  uint16_t uh_ulen;
-  uint16_t uh_sum;
+  uint16_t src_port;
+  uint16_t dst_port;
+  uint16_t len;
+  uint16_t sum;
 } __attribute__((packed));
 
 uint32_t ip_from_str(char *ip) {
@@ -111,10 +113,10 @@ void gen_ipv4_header(ipv4_hdr_t *ipv4_hdr, uint32_t src_ip, uint32_t dst_ip,
 
 void gen_udp_header(udp_hdr_t *udp_hdr, uint16_t src_port, uint16_t dst_port,
                     uint16_t data_size) {
-  udp_hdr->uh_sport = htons(src_port);
-  udp_hdr->uh_dport = htons(dst_port);
-  udp_hdr->uh_ulen = htons(sizeof(udp_hdr_t) + data_size);
-  udp_hdr->uh_sum = 0;
+  udp_hdr->src_port = htons(src_port);
+  udp_hdr->dst_port = htons(dst_port);
+  udp_hdr->len = htons(sizeof(udp_hdr_t) + data_size);
+  udp_hdr->sum = 0;
 }
 
 ctrl_blk_t *init_ctx(size_t device_index) {
