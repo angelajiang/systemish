@@ -8,29 +8,45 @@
 
 void install_flow_rule(struct ibv_qp *qp) {
   static constexpr size_t rule_sz =
-      sizeof(ibv_exp_flow_attr) + sizeof(ibv_exp_flow_spec_eth);
-  static_assert(rule_sz == 64, "");
+      sizeof(ibv_exp_flow_attr) + sizeof(ibv_exp_flow_spec_eth) +
+      sizeof(ibv_exp_flow_spec_ipv4_ext) + sizeof(ibv_exp_flow_spec_tcp_udp);
 
   uint8_t *flow_rule = new uint8_t[rule_sz];
   memset(flow_rule, 0, rule_sz);
+  uint8_t *buf = flow_rule;
 
   auto *flow_attr = reinterpret_cast<struct ibv_exp_flow_attr *>(flow_rule);
   flow_attr->type = IBV_EXP_FLOW_ATTR_NORMAL;
-  flow_attr->size = 64;
+  flow_attr->size = rule_sz;
   flow_attr->priority = 0;
-  flow_attr->num_of_specs = 1;
+  flow_attr->num_of_specs = 3;
   flow_attr->port = 1;
   flow_attr->flags = 0;
   flow_attr->reserved = 0;
+  buf += sizeof(struct ibv_exp_flow_attr);
 
-  auto *flow_spec_eth = reinterpret_cast<struct ibv_exp_flow_spec_eth *>(
-      flow_rule + sizeof(ibv_exp_flow_attr));
-  static_assert(IBV_EXP_FLOW_SPEC_ETH == 0x20, "");
-  flow_spec_eth->type = IBV_EXP_FLOW_SPEC_ETH;
-  static_assert(sizeof(struct ibv_exp_flow_spec_eth) == 0x28, "");
-  flow_spec_eth->size = 0x28;
-  memcpy(flow_spec_eth->val.dst_mac, kDstMAC, 6);
-  memset(flow_spec_eth->mask.dst_mac, 0xff, 6);
+  // Ethernet
+  auto *eth_spec = reinterpret_cast<struct ibv_exp_flow_spec_eth *>(buf);
+  eth_spec->type = IBV_EXP_FLOW_SPEC_ETH;
+  eth_spec->size = sizeof(struct ibv_exp_flow_spec_eth);
+  memcpy(eth_spec->val.dst_mac, kDstMAC, 6);
+  memset(eth_spec->mask.dst_mac, 0xff, 6);
+  buf += sizeof(struct ibv_exp_flow_spec_eth);
+
+  // IPv4
+  auto *spec_ipv4 = reinterpret_cast<struct ibv_exp_flow_spec_ipv4_ext *>(buf);
+  spec_ipv4->type = IBV_EXP_FLOW_SPEC_IPV4_EXT;
+  spec_ipv4->size = sizeof(struct ibv_exp_flow_spec_ipv4_ext);
+  spec_ipv4->val.dst_ip = ip_from_str(kDstIP);
+  spec_ipv4->mask.dst_ip = 0xffffffffu;
+  buf += sizeof(struct ibv_exp_flow_spec_ipv4_ext);
+
+  // UDP
+  auto *udp_spec = reinterpret_cast<struct ibv_exp_flow_spec_tcp_udp *>(buf);
+  udp_spec->type = IBV_EXP_FLOW_SPEC_UDP;
+  udp_spec->size = sizeof(struct ibv_exp_flow_spec_tcp_udp);
+  udp_spec->val.dst_port = htons(kDstPort);
+  udp_spec->mask.dst_port = 0xffffu;
 
   auto *flow = ibv_exp_create_flow(qp, flow_attr);
   assert(flow != nullptr);
