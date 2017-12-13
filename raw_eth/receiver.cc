@@ -42,6 +42,7 @@ void install_flow_rule(struct ibv_qp *qp, uint16_t dst_port) {
   udp_spec->val.dst_port = htons(dst_port);
   udp_spec->mask.dst_port = 0xffffu;
 
+  printf("Create flow for QP %p, dst port %u\n", qp, dst_port);
   auto *flow = ibv_exp_create_flow(qp, flow_attr);
   assert(flow != nullptr);
 }
@@ -55,11 +56,10 @@ void thread_func(size_t thread_id) {
 
   // Register RX ring memory
   size_t ring_size = kRecvBufSize * kRQDepth;
-  void *buf = malloc(ring_size);
-  assert(buf != nullptr);
+  uint8_t *ring = new uint8_t[ring_size];
 
   struct ibv_mr *mr =
-      ibv_reg_mr(cb->pd, buf, ring_size, IBV_ACCESS_LOCAL_WRITE);
+      ibv_reg_mr(cb->pd, ring, ring_size, IBV_ACCESS_LOCAL_WRITE);
   assert(mr != nullptr);
 
   // Attach all buffers to the ring
@@ -72,32 +72,42 @@ void thread_func(size_t thread_id) {
   wr.sg_list = &sge;
   wr.next = nullptr;
 
-  for (size_t n = 0; n < kRQDepth; n++) {
-    sge.addr = reinterpret_cast<uint64_t>(buf) + (kRecvBufSize * n);
-    wr.wr_id = n;
+  for (size_t i = 0; i < kRQDepth; i++) {
+    sge.addr = reinterpret_cast<uint64_t>(ring) + (kRecvBufSize * i);
     int ret = ibv_post_recv(cb->qp, &wr, &bad_wr);
     assert(ret == 0);
   }
 
   printf("Thread %zu: Listening\n", thread_id);
+  size_t ring_head = 0;
   while (true) {
     struct ibv_wc wc;
-    int msgs_completed = ibv_poll_cq(cb->recv_cq, 1, &wc);
-    assert(msgs_completed >= 0);
-    if (msgs_completed == 0) continue;
+    int ret = ibv_poll_cq(cb->recv_cq, 1, &wc);
+    assert(ret >= 0);
+    if (ret == 0) continue;
+    size_t num_comps = static_cast<size_t>(ret);
 
-    printf("Thread %zu: Message %ld received size %d\n",
-           thread_id, wc.wr_id, wc.byte_len);
+    for (size_t i = 0; i < num_comps; i++) {
+      uint8_t *buf = &ring[ring_head * kRecvBufSize];
+      auto *udp_hdr = reinterpret_cast<udp_hdr_t *>(buf + sizeof(eth_hdr_t) +
+                                                    sizeof(ipv4_hdr_t));
+      auto *data_hdr = reinterpret_cast<data_hdr_t *>(buf + kTotHdrSz);
+      printf("Thread %zu: Message %s received, udp dst port = %u\n", i,
+             data_hdr->to_string().c_str(), ntohs(udp_hdr->dst_port));
 
-    for (size_t i = 0; i < 60; i++) {
-      printf("%02x ", reinterpret_cast<uint8_t *>(sge.addr)[i]);
+      for (size_t u = 0; u < kTotHdrSz + kDataSize; u++) {
+        printf("%02x ", buf[u]);
+      }
+      printf("\n");
+
+      // assert(data_hdr->receiver_thread == i);
+
+      sge.addr = reinterpret_cast<uint64_t>(buf);
+      ret = ibv_post_recv(cb->qp, &wr, &bad_wr);
+      assert(ret == 0);
+
+      ring_head = (ring_head + 1) % kRQDepth;
     }
-    printf("\n");
-
-    sge.addr = reinterpret_cast<uint64_t>(buf) + (wc.wr_id * kRecvBufSize);
-    wr.wr_id = wc.wr_id;
-    int ret = ibv_post_recv(cb->qp, &wr, &bad_wr);
-    assert(ret == 0);
   }
 }
 

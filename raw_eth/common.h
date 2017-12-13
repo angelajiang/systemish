@@ -7,12 +7,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sstream>
 #include <thread>
 
 static constexpr size_t kDeviceIndex = 2;
 static constexpr size_t kPortIndex = 2;       // mlx5_0
 static constexpr size_t kDataSize = 32;       // Data size, without headers
 static constexpr size_t kRecvBufSize = 1500;  // RECV buffer size
+static_assert(kDataSize % sizeof(size_t) == 0, "");
 
 static constexpr size_t kSQDepth = 512;
 static constexpr size_t kRQDepth = 512;
@@ -67,6 +69,25 @@ struct udp_hdr_t {
   uint16_t sum;
 } __attribute__((packed));
 
+static constexpr size_t kTotHdrSz =
+    sizeof(eth_hdr_t) + sizeof(ipv4_hdr_t) + sizeof(udp_hdr_t);
+static_assert(kTotHdrSz == 42, "");
+
+// User-defined data header
+struct data_hdr_t {
+  size_t receiver_thread;  // The receiver thread that's the target
+  size_t seq_num;          // Sequence number to this receiver
+  uint8_t pad[kDataSize - 2 * sizeof(size_t)];
+
+  std::string to_string() {
+    std::ostringstream ret;
+    ret << "[Receiver thread " << std::to_string(receiver_thread)
+        << ", seq num " << std::to_string(seq_num) << "]";
+    return ret.str();
+  }
+};
+static_assert(sizeof(data_hdr_t) == kDataSize, "");
+
 uint32_t ip_from_str(char *ip) {
   uint32_t addr;
   int ret = inet_pton(AF_INET, ip, &addr);
@@ -120,7 +141,7 @@ void gen_udp_header(udp_hdr_t *udp_hdr, uint16_t src_port, uint16_t dst_port,
 }
 
 ctrl_blk_t *init_ctx(size_t device_index) {
-  ctrl_blk_t *cb = new ctrl_blk_t();
+  auto *cb = new ctrl_blk_t();
   memset(cb, 0, sizeof(ctrl_blk_t));
 
   struct ibv_device **dev_list = ibv_get_device_list(nullptr);
@@ -145,7 +166,7 @@ ctrl_blk_t *init_ctx(size_t device_index) {
 
   cb->recv_cq = ibv_exp_create_cq(cb->context, kRQDepth, nullptr, nullptr, 0,
                                   &cq_init_attr);
-  assert(cb->send_cq != nullptr);
+  assert(cb->recv_cq != nullptr);
 
   struct ibv_exp_qp_init_attr qp_init_attr;
   memset(&qp_init_attr, 0, sizeof(qp_init_attr));

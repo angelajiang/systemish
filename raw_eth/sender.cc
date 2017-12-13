@@ -21,10 +21,7 @@ int main() {
   ctrl_blk_t *cb = init_ctx(kDeviceIndex);
   FastRand fast_rand;
 
-  static constexpr size_t pkt_sz =
-      sizeof(eth_hdr_t) + sizeof(ipv4_hdr_t) + sizeof(udp_hdr_t) + kDataSize;
-
-  uint8_t packet[pkt_sz] = {0};
+  uint8_t packet[kTotHdrSz + kDataSize] = {0};
   format_packet(packet);
 
   for (auto u : packet) printf("%02x ", u);
@@ -32,7 +29,7 @@ int main() {
 
   struct ibv_sge sg_entry;
   sg_entry.addr = reinterpret_cast<uint64_t>(packet);
-  sg_entry.length = pkt_sz;
+  sg_entry.length = kTotHdrSz + kDataSize;
   sg_entry.lkey = 0;
 
   struct ibv_send_wr wr;
@@ -42,18 +39,24 @@ int main() {
   wr.next = nullptr;
   wr.opcode = IBV_WR_SEND;
 
-  // Do SENDS
+  size_t seq_num[kReceiverThreads] = {0};
   size_t nb_tx = 0;
+
   while (true) {
     wr.send_flags = IBV_SEND_INLINE;
     wr.wr_id = static_cast<size_t>(nb_tx);
     wr.send_flags |= IBV_SEND_SIGNALED;
 
     // Direct the packet to one of the receiver threads
-    udp_hdr_t *udp_hdr = reinterpret_cast<udp_hdr_t *>(
-        packet + sizeof(eth_hdr_t) + sizeof(ipv4_hdr_t));
-    udp_hdr->dst_port =
-        htons(kBaseDstPort + fast_rand.next_u32() % kReceiverThreads);
+    auto *udp_hdr = reinterpret_cast<udp_hdr_t *>(packet + sizeof(eth_hdr_t) +
+                                                  sizeof(ipv4_hdr_t));
+    size_t dst_thread_idx = fast_rand.next_u32() % kReceiverThreads;
+    udp_hdr->dst_port = htons(kBaseDstPort + dst_thread_idx);
+
+    // Format user info
+    auto *data_hdr = reinterpret_cast<data_hdr_t *>(packet + kTotHdrSz);
+    data_hdr->receiver_thread = dst_thread_idx;
+    data_hdr->seq_num = seq_num[dst_thread_idx]++;
 
     struct ibv_send_wr *bad_wr;
     int ret = ibv_post_send(cb->qp, &wr, &bad_wr);
