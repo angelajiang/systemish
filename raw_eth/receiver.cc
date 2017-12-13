@@ -92,7 +92,7 @@ void thread_func(size_t thread_id) {
       auto *udp_hdr = reinterpret_cast<udp_hdr_t *>(buf + sizeof(eth_hdr_t) +
                                                     sizeof(ipv4_hdr_t));
       auto *data_hdr = reinterpret_cast<data_hdr_t *>(buf + kTotHdrSz);
-      printf("Thread %zu: Message %s received, udp dst port = %u\n", i,
+      printf("Thread %zu: Message %s received, udp dst port = %u\n", thread_id,
              data_hdr->to_string().c_str(), ntohs(udp_hdr->dst_port));
 
       for (size_t u = 0; u < kTotHdrSz + kDataSize; u++) {
@@ -100,7 +100,7 @@ void thread_func(size_t thread_id) {
       }
       printf("\n");
 
-      // assert(data_hdr->receiver_thread == i);
+      assert(data_hdr->receiver_thread == thread_id);
 
       sge.addr = reinterpret_cast<uint64_t>(buf);
       ret = ibv_post_recv(cb->qp, &wr, &bad_wr);
