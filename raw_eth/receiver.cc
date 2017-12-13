@@ -95,11 +95,6 @@ void thread_func(size_t thread_id) {
       printf("Thread %zu: Message %s received, udp dst port = %u\n", thread_id,
              data_hdr->to_string().c_str(), ntohs(udp_hdr->dst_port));
 
-      for (size_t u = 0; u < kTotHdrSz + kDataSize; u++) {
-        printf("%02x ", buf[u]);
-      }
-      printf("\n");
-
       assert(data_hdr->receiver_thread == thread_id);
 
       sge.addr = reinterpret_cast<uint64_t>(buf);
