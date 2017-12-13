@@ -1,5 +1,6 @@
 #include "common.h"
 
+// Install a UDP destination port--based flow rule
 void install_flow_rule(struct ibv_qp *qp, uint16_t dst_port) {
   static constexpr size_t rule_sz =
       sizeof(ibv_exp_flow_attr) + sizeof(ibv_exp_flow_spec_eth) +
@@ -19,23 +20,19 @@ void install_flow_rule(struct ibv_qp *qp, uint16_t dst_port) {
   flow_attr->reserved = 0;
   buf += sizeof(struct ibv_exp_flow_attr);
 
-  // Ethernet
+  // Ethernet - all wildcard
   auto *eth_spec = reinterpret_cast<struct ibv_exp_flow_spec_eth *>(buf);
   eth_spec->type = IBV_EXP_FLOW_SPEC_ETH;
   eth_spec->size = sizeof(struct ibv_exp_flow_spec_eth);
-  memcpy(eth_spec->val.dst_mac, kDstMAC, 6);
-  memset(eth_spec->mask.dst_mac, 0xff, 6);
   buf += sizeof(struct ibv_exp_flow_spec_eth);
 
-  // IPv4
+  // IPv4 - all wildcard
   auto *spec_ipv4 = reinterpret_cast<struct ibv_exp_flow_spec_ipv4_ext *>(buf);
   spec_ipv4->type = IBV_EXP_FLOW_SPEC_IPV4_EXT;
   spec_ipv4->size = sizeof(struct ibv_exp_flow_spec_ipv4_ext);
-  spec_ipv4->val.dst_ip = ip_from_str(kDstIP);
-  spec_ipv4->mask.dst_ip = 0xffffffffu;
   buf += sizeof(struct ibv_exp_flow_spec_ipv4_ext);
 
-  // UDP
+  // UDP - match dst port
   auto *udp_spec = reinterpret_cast<struct ibv_exp_flow_spec_tcp_udp *>(buf);
   udp_spec->type = IBV_EXP_FLOW_SPEC_UDP;
   udp_spec->size = sizeof(struct ibv_exp_flow_spec_tcp_udp);
