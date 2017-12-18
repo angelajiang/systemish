@@ -4,12 +4,18 @@
  */
 
 #include <assert.h>
+#include <dirent.h>
+#include <errno.h>
 #include <ifaddrs.h>
+#include <linux/if_arp.h>
+#include <linux/if_packet.h>
+#include <net/ethernet.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <vector>
 #include "inet_hdrs.h"
 
 void test_ip_to_str() {
@@ -42,30 +48,57 @@ std::string interface_to_ip_str(std::string interface) {
   assert(ret == 0);
 
   for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
-    if (ifa->ifa_addr->sa_family != AF_INET) continue;
+    if (ifa->ifa_addr->sa_family != AF_INET) continue;  // IP address
+    if (strcmp(ifa->ifa_name, interface.c_str()) != 0) continue;
 
-    if (strcmp(ifa->ifa_name, interface.c_str()) == 0) {
-      auto sin_addr = reinterpret_cast<sockaddr_in *>(ifa->ifa_addr);
-      uint32_t ipv4_addr = *reinterpret_cast<uint32_t *>(&sin_addr->sin_addr);
-      std::string ip_str = ip_to_string(ipv4_addr);
+    auto sin_addr = reinterpret_cast<sockaddr_in *>(ifa->ifa_addr);
+    uint32_t ipv4_addr = *reinterpret_cast<uint32_t *>(&sin_addr->sin_addr);
+    std::string ip_str = ip_to_string(ipv4_addr);
 
-      freeifaddrs(ifaddr);
-      return ip_str;
-    }
+    freeifaddrs(ifaddr);
+    return ip_str;
   }
 
   freeifaddrs(ifaddr);
   return "";
 }
 
+void getdir(std::string dir, std::vector<std::string> &files) {
+  DIR *dp;
+  struct dirent *dirp;
+  dp = opendir(dir.c_str());
+  assert(dp != nullptr);
+
+  while ((dirp = readdir(dp)) != nullptr) {
+    if (strcmp(dirp->d_name, ".") == 0) continue;
+    if (strcmp(dirp->d_name, "..") == 0) continue;
+    files.push_back(std::string(dirp->d_name));
+  }
+  closedir(dp);
+}
+
+int list_dirs() {
+  std::string dir = "/sys/class/infiniband/mlx5_0/device/net";
+  std::vector<std::string> files;
+
+  getdir(dir, files);
+
+  for (unsigned int i = 0; i < files.size(); i++) {
+    printf("%s\n", files[i].c_str());
+  }
+  return 0;
+}
+
 int main() {
   test_ip_to_str();
   test_str_to_ip();
   test_mac_to_string();
+  list_dirs();
 
   printf("\n");
 
-  std::string iface_arr[] = {"enp4s0f0", "enp4s0f1", "enp132s0f0", "enp4s0f1"};
+  std::string iface_arr[] = {"enp4s0f0", "enp4s0f1", "enp132s0f0",
+                             "enp132s0f1"};
   for (auto s : iface_arr) {
     std::string ip_str = interface_to_ip_str(s);
     printf("Interface %s, IP %s\n", s.c_str(),
