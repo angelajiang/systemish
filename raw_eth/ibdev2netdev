@@ -1,71 +1,6 @@
-#! /bin/bash
-#
-# Copyright (c) 2017 Mellanox Technologies. All rights reserved.
-#
-# This Software is licensed under one of the following licenses:
-#
-# 1) under the terms of the "Common Public License 1.0" a copy of which is
-#    available from the Open Source Initiative, see
-#    http://www.opensource.org/licenses/cpl.php.
-#
-# 2) under the terms of the "The BSD License" a copy of which is
-#    available from the Open Source Initiative, see
-#    http://www.opensource.org/licenses/bsd-license.php.
-#
-# 3) under the terms of the "GNU General Public License (GPL) Version 2" a
-#    copy of which is available from the Open Source Initiative, see
-#    http://www.opensource.org/licenses/gpl-license.php.
-#
-# Licensee has the right to choose one of the above licenses.
-#
-# Redistributions of source code must retain the above copyright
-# notice and one of the license notices.
-#
-# Redistributions in binary form must reproduce both the above copyright
-# notice, one of the license notices in the documentation
-# and/or other materials provided with the distribution.
-#
-
-usage()
-{
-        echo "$(basename $0) <options>"
-        echo "-h, --help                print help message"
-        echo "-v, --verbose             print more info"
-}
-
-function find_pdev()
-{
-	pdevlist=$(ls /sys/bus/pci/devices)
-
-	for pdev in $pdevlist; do
-		if [ -d /sys/bus/pci/devices/$pdev/infiniband ]; then
-			ibd=$(ls /sys/bus/pci/devices/$pdev/infiniband/)
-			if [ "x$ibd" == "x$1" ]; then
-				echo -n $pdev
-			fi
-		fi
-	done
-}
-
-case $1 in
-        "-h" | "--help")
-                usage
-                exit 0
-                ;;
-esac
-
-if (( $# > 1 )); then
-	usage
-	exit -1
-fi
-
-if (( $# == 1 )) && [ "$1" != "-v" ]; then
-	usage
-        exit -1
-fi
+#!/usr/bin/env bash
 
 if [ ! -d /sys/class/infiniband ]; then
-	# driver is stopped
 	exit -1
 fi
 ibdevs=$(ls /sys/class/infiniband/)
@@ -130,50 +65,7 @@ if [ "x$oldstyle" == "xn" ]; then
 							link_state="NA"
 						fi
 
-						x=$(find_pdev $d)
-						if [ "$1" == "-v" ]; then
-							filepath_portstate=/sys/class/infiniband/$d/ports/$port/state
-							filepath_deviceid=/sys/class/infiniband/$d/device/device
-							filepath_fwver=/sys/class/infiniband/$d/fw_ver
-							filepath_vpd=/sys/class/infiniband/$d/device/vpd
-
-							# read port state
-							if [ -f $filepath_portstate ]; then
-								ibstate=$(printf "%-6s" $(cat $filepath_portstate | awk '{print $2}'))
-							else
-								ibstate="NA"
-							fi
-
-							# read device
-							if [ -f $filepath_deviceid ]; then
-								devid=$(printf "MT%d" $(cat $filepath_deviceid))
-							else
-								devid="NA"
-							fi
-
-							# read FW version
-							if [ -f $filepath_fwver ]; then
-								fwver=$(cat $filepath_fwver)
-							else
-								fwver="NA"
-							fi
-
-							# read device description and part ID from the VPD
-							if [ -f $filepath_vpd ]; then
-								tmp=$IFS
-								IFS=":"
-								vpd_content=`cat $filepath_vpd`
-								devdesc=$(printf "%-15s" $(echo $vpd_content | strings | head -1))
-								partid=$(printf "%-11s" $(echo $vpd_content | strings | head -4 | tail -1 | awk '{print $1}'))
-								IFS=$tmp
-							else
-								devdesc=""
-								partid="NA"
-							fi
-							echo "$x $d ($devid - $partid) $devdesc fw $fwver port $port ($ibstate) ==> $eth ($link_state)"
-						else
-							echo "$d port $port ==> $eth ($link_state)"
-						fi
+					  echo "$d port $port ==> $eth ($link_state)"
 					fi
 				fi
 			fi
