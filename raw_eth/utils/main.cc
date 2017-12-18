@@ -4,8 +4,12 @@
  */
 
 #include <assert.h>
+#include <ifaddrs.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include "inet_hdrs.h"
 
 void test_ip_to_str() {
@@ -31,8 +35,40 @@ void test_mac_to_string() {
   printf("mac address to string = %s\n", mac_to_string(mac).c_str());
 }
 
+std::string interface_to_ip_str(std::string interface) {
+  struct ifaddrs *ifaddr, *ifa;
+
+  int ret = getifaddrs(&ifaddr);
+  assert(ret == 0);
+
+  for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+    if (ifa->ifa_addr->sa_family != AF_INET) continue;
+
+    if (strcmp(ifa->ifa_name, interface.c_str()) == 0) {
+      auto sin_addr = reinterpret_cast<sockaddr_in *>(ifa->ifa_addr);
+      uint32_t ipv4_addr = *reinterpret_cast<uint32_t *>(&sin_addr->sin_addr);
+      std::string ip_str = ip_to_string(ipv4_addr);
+
+      freeifaddrs(ifaddr);
+      return ip_str;
+    }
+  }
+
+  freeifaddrs(ifaddr);
+  return "";
+}
+
 int main() {
   test_ip_to_str();
   test_str_to_ip();
   test_mac_to_string();
+
+  printf("\n");
+
+  std::string iface_arr[] = {"enp4s0f0", "enp4s0f1", "enp132s0f0", "enp4s0f1"};
+  for (auto s : iface_arr) {
+    std::string ip_str = interface_to_ip_str(s);
+    printf("Interface %s, IP %s\n", s.c_str(),
+           ip_str.length() != 0 ? ip_str.c_str() : "N/A");
+  }
 }

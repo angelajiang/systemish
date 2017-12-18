@@ -38,10 +38,10 @@ uint32_t ip_from_str(const char* ip) {
   return addr;
 }
 
-std::string ip_to_string(uint32_t addr) {
+std::string ip_to_string(uint32_t ipv4_addr) {
   static_assert(INET_ADDRSTRLEN == 16, "");
   char str[INET_ADDRSTRLEN];
-  const char* ret = inet_ntop(AF_INET, &addr, str, sizeof(str));
+  const char* ret = inet_ntop(AF_INET, &ipv4_addr, str, sizeof(str));
   rt_assert(ret == str, "inet_ntop failed");
   str[INET_ADDRSTRLEN - 1] = 0;  // Null-terminate
   return str;

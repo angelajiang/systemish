@@ -3,7 +3,8 @@
 if [ ! -d /sys/class/infiniband ]; then
   exit -1
 fi
-ibdevs=$(ls /sys/class/infiniband/)
+ibdevs=`ls /sys/class/infiniband/| tr "\n" " "`
+echo "ibdevs = $ibdevs"
 
 devs=""
 for netpath in /sys/class/net/*
@@ -12,6 +13,7 @@ do
     devs="$devs ${netpath##*/}"
   fi
 done
+echo "devs = $devs"
 
 if [ "x$devs" == "x" ]; then
   exit
