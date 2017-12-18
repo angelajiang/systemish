@@ -1,136 +1,136 @@
 #!/usr/bin/env bash
 
 if [ ! -d /sys/class/infiniband ]; then
-	exit -1
+  exit -1
 fi
 ibdevs=$(ls /sys/class/infiniband/)
 
 devs=
 for netpath in /sys/class/net/*
 do
-    if (grep 0x15b3 ${netpath}/device/vendor > /dev/null 2>&1); then
-        devs="$devs ${netpath##*/}"
-    fi
+  if (grep 0x15b3 ${netpath}/device/vendor > /dev/null 2>&1); then
+    devs="$devs ${netpath##*/}"
+  fi
 done
 
 if [ "x$devs" == "x" ]; then
-	# no relevant devices - quit immediately
-	exit
+  # no relevant devices - quit immediately
+  exit
 fi
 
 for d in $devs; do
-	if [ -f /sys/class/net/$d/dev_id ]; then
-		oldstyle=n
-		break
-	fi
+  if [ -f /sys/class/net/$d/dev_id ]; then
+    oldstyle=n
+    break
+  fi
 done
 
 if [ "x$oldstyle" == "xn" ]; then
-	for d in $ibdevs; do
-		ibrsc=$(cat /sys/class/infiniband/$d/device/resource)
-		eths=$(ls /sys/class/net/)
-		for eth in $eths; do
-			filepath_resource=/sys/class/net/$eth/device/resource
+  for d in $ibdevs; do
+    ibrsc=$(cat /sys/class/infiniband/$d/device/resource)
+    eths=$(ls /sys/class/net/)
+    for eth in $eths; do
+      filepath_resource=/sys/class/net/$eth/device/resource
 
-			if [ -f $filepath_resource ]; then
-				ethrsc=$(cat $filepath_resource)
-				if [ "x$ethrsc" == "x$ibrsc" ]; then
-					filepath_devid=/sys/class/net/$eth/dev_id
-					filepath_devport=/sys/class/net/$eth/dev_port
-					if [ -f $filepath_devid ]; then
-						port1=0
-						if [ -f $filepath_devport ]; then
-							port1=$(cat $filepath_devport)
-							port1=$(printf "%d" $port1)
-						fi
+      if [ -f $filepath_resource ]; then
+        ethrsc=$(cat $filepath_resource)
+        if [ "x$ethrsc" == "x$ibrsc" ]; then
+          filepath_devid=/sys/class/net/$eth/dev_id
+          filepath_devport=/sys/class/net/$eth/dev_port
+          if [ -f $filepath_devid ]; then
+            port1=0
+            if [ -f $filepath_devport ]; then
+              port1=$(cat $filepath_devport)
+              port1=$(printf "%d" $port1)
+            fi
 
-						port=$(cat $filepath_devid)
-						port=$(printf "%d" $port)
-						if [ $port1 -gt $port ]; then
-							port=$port1
-						fi
+            port=$(cat $filepath_devid)
+            port=$(printf "%d" $port)
+            if [ $port1 -gt $port ]; then
+              port=$port1
+            fi
 
-						port=$(( port + 1 ))
+            port=$(( port + 1 ))
 
-						filepath_carrier=/sys/class/net/$eth/carrier
+            filepath_carrier=/sys/class/net/$eth/carrier
 
-						if [ -f $filepath_carrier ]; then
-							link_state=$(cat $filepath_carrier 2> /dev/null)
-        	                                        if (( link_state == 1 )); then
-                	                                        link_state="Up"
-                        	                        else
-                                	                        link_state="Down"
-                                        	        fi
-						else
-							link_state="NA"
-						fi
+            if [ -f $filepath_carrier ]; then
+              link_state=$(cat $filepath_carrier 2> /dev/null)
+              if (( link_state == 1 )); then
+                link_state="Up"
+              else
+                link_state="Down"
+              fi
+            else
+              link_state="NA"
+            fi
 
-					  echo "$d port $port ==> $eth ($link_state)"
-					fi
-				fi
-			fi
-		done
-	done
+            echo "$d port $port ==> $eth ($link_state)"
+          fi
+        fi
+      fi
+    done
+  done
 else
-##########################
-### old style
-##########################
+  ##########################
+  ### old style
+  ##########################
 
-function print_line()
-{
-	echo "$1 port $2 <===> $3"
-}
+  function print_line()
+  {
+    echo "$1 port $2 <===> $3"
+  }
 
-function find_guid()
-{
-	ibdevs=$(ls /sys/class/infiniband/)
-	for ibdev in $ibdevs; do
-		ports=$(ls /sys/class/infiniband/$ibdev/ports/)
-		for port in $ports; do
-			gids=$(ls /sys/class/infiniband/$ibdev/ports/$port/gids)
-			for gid in $gids; do
-				pguid=$(cat /sys/class/infiniband/$ibdev/ports/$port/gids/$gid | cut -b 21- | sed -e 's/://g')
-				if [ x$pguid == x$1 ]; then
-					print_line $ibdev $port $2
-				fi
-			done
-		done
-	done
-}
+  function find_guid()
+  {
+    ibdevs=$(ls /sys/class/infiniband/)
+    for ibdev in $ibdevs; do
+      ports=$(ls /sys/class/infiniband/$ibdev/ports/)
+      for port in $ports; do
+        gids=$(ls /sys/class/infiniband/$ibdev/ports/$port/gids)
+        for gid in $gids; do
+          pguid=$(cat /sys/class/infiniband/$ibdev/ports/$port/gids/$gid | cut -b 21- | sed -e 's/://g')
+          if [ x$pguid == x$1 ]; then
+            print_line $ibdev $port $2
+          fi
+        done
+      done
+    done
+  }
 
-function find_mac()
-{
-	ibdevs=$(ls /sys/class/infiniband/)
-	for ibdev in $ibdevs; do
-		ports=$(ls /sys/class/infiniband/$ibdev/ports/)
-		for port in $ports; do
-			gids=$(ls /sys/class/infiniband/$ibdev/ports/$port/gids)
-			for gid in $gids; do
-				first=$(cat /sys/class/infiniband/$ibdev/ports/$port/gids/$gid | cut -b 21-22)
-				first=$(( first ^ 2 ))
-				first=$(printf "%02x" $first)
-				second=$(cat /sys/class/infiniband/$ibdev/ports/$port/gids/$gid | cut -b 21- | sed -e 's/://g' | cut -b 3-6)
-				third=$(cat /sys/class/infiniband/$ibdev/ports/$port/gids/$gid | cut -b 21- | sed -e 's/://g' | cut -b 11-)
-				pmac=$first$second$third
-				if [ x$pmac == x$1 ]; then
-					print_line $ibdev $port $2
-				fi
-			done
-		done
-	done
-}
+  function find_mac()
+  {
+    ibdevs=$(ls /sys/class/infiniband/)
+    for ibdev in $ibdevs; do
+      ports=$(ls /sys/class/infiniband/$ibdev/ports/)
+      for port in $ports; do
+        gids=$(ls /sys/class/infiniband/$ibdev/ports/$port/gids)
+        for gid in $gids; do
+          first=$(cat /sys/class/infiniband/$ibdev/ports/$port/gids/$gid | cut -b 21-22)
+          first=$(( first ^ 2 ))
+          first=$(printf "%02x" $first)
+          second=$(cat /sys/class/infiniband/$ibdev/ports/$port/gids/$gid | cut -b 21- | sed -e 's/://g' | cut -b 3-6)
+          third=$(cat /sys/class/infiniband/$ibdev/ports/$port/gids/$gid | cut -b 21- | sed -e 's/://g' | cut -b 11-)
+          pmac=$first$second$third
+          if [ x$pmac == x$1 ]; then
+            print_line $ibdev $port $2
+          fi
+        done
+      done
+    done
+  }
 
-ifcs=$(ifconfig -a | egrep '^eth|^ib' | awk '{print $1}')
+  ifcs=$(ifconfig -a | egrep '^eth|^ib' | awk '{print $1}')
 
-for ifc in $ifcs; do
-	len=$(cat /sys/class/net/$ifc/addr_len)
-	if (( len == 20 )); then
-		guid=$(cat /sys/class/net/$ifc/address | cut -b 37- | sed -e 's/://g')
-		find_guid $guid $ifc
-	elif (( len == 6)); then
-		mac=$(cat /sys/class/net/$ifc/address | sed -e 's/://g')	
-		find_mac $mac $ifc
-	fi
-done
+  for ifc in $ifcs; do
+    len=$(cat /sys/class/net/$ifc/addr_len)
+    if (( len == 20 )); then
+      guid=$(cat /sys/class/net/$ifc/address | cut -b 37- | sed -e 's/://g')
+      find_guid $guid $ifc
+    elif (( len == 6)); then
+      mac=$(cat /sys/class/net/$ifc/address | sed -e 's/://g')	
+      find_mac $mac $ifc
+    fi
+  done
 fi
 
