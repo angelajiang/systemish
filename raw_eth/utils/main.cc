@@ -15,6 +15,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <vector>
 #include "inet_hdrs.h"
 
@@ -63,6 +64,18 @@ std::string get_interface_ipv4_str(std::string interface) {
   return "";
 }
 
+std::string get_interface_mac_str(std::string interface) {
+  struct ifreq ifr;
+  ifr.ifr_addr.sa_family = AF_INET;
+  strncpy(ifr.ifr_name, interface.c_str(), IFNAMSIZ - 1);
+
+  int fd = socket(AF_INET, SOCK_DGRAM, 0);
+  ioctl(fd, SIOCGIFHWADDR, &ifr);
+  close(fd);
+
+  return mac_to_string(reinterpret_cast<uint8_t *>(ifr.ifr_hwaddr.sa_data));
+}
+
 std::string get_ibdev_ipv4_addr(std::string ibdev_name) {
   std::string dev_dir = "/sys/class/infiniband/" + ibdev_name + "/device/net";
 
@@ -95,11 +108,17 @@ int main() {
 
   std::string net_iface_arr[] = {"enp4s0f0", "enp4s0f1", "enp132s0f0",
                                  "enp132s0f1"};
-  for (auto s : net_iface_arr) {
-    std::string ip_str = get_interface_ipv4_str(s);
-    printf("Interface %s, IP %s\n", s.c_str(),
+  for (auto ni : net_iface_arr) {
+    std::string ip_str = get_interface_ipv4_str(ni);
+    printf("Interface %s, IP %s\n", ni.c_str(),
            ip_str.length() != 0 ? ip_str.c_str() : "N/A");
+
+    std::string mac_str = get_interface_mac_str(ni);
+    printf("Interface %s, MAC %s\n", ni.c_str(),
+           mac_str.length() != 0 ? mac_str.c_str() : "N/A");
   }
+
+  printf("\n");
 
   std::string ibdev_arr[] = {"mlx5_0", "mlx5_1", "mlx5_2", "mlx5_3"};
   for (auto s : ibdev_arr) {
