@@ -70,9 +70,11 @@ std::string get_interface_mac_str(std::string interface) {
   strncpy(ifr.ifr_name, interface.c_str(), IFNAMSIZ - 1);
 
   int fd = socket(AF_INET, SOCK_DGRAM, 0);
-  ioctl(fd, SIOCGIFHWADDR, &ifr);
-  close(fd);
+  assert(fd >= 0);
+  int ret = ioctl(fd, SIOCGIFHWADDR, &ifr);
+  rt_assert(ret == 0, "MAC address IOCTL failed");
 
+  close(fd);
   return mac_to_string(reinterpret_cast<uint8_t *>(ifr.ifr_hwaddr.sa_data));
 }
 
