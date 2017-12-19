@@ -41,7 +41,7 @@ void test_mac_to_string() {
   printf("mac address to string = %s\n", mac_to_string(mac).c_str());
 }
 
-std::string interface_to_ip_str(std::string interface) {
+std::string get_net_interface_ipv4_str(std::string interface) {
   struct ifaddrs *ifaddr, *ifa;
 
   int ret = getifaddrs(&ifaddr);
@@ -63,45 +63,49 @@ std::string interface_to_ip_str(std::string interface) {
   return "";
 }
 
-void getdir(std::string dir, std::vector<std::string> &files) {
+std::string get_mlnx_ipv4_addr(std::string mlnx_dev_name) {
+  std::string dev_dir =
+      "/sys/class/infiniband/" + mlnx_dev_name + "/device/net";
+
+  std::vector<std::string> net_ifaces;
   DIR *dp;
   struct dirent *dirp;
-  dp = opendir(dir.c_str());
+  dp = opendir(dev_dir.c_str());
   assert(dp != nullptr);
 
-  while ((dirp = readdir(dp)) != nullptr) {
+  while (true) {
+    dirp = readdir(dp);
+    if (dirp == nullptr) break;
+
     if (strcmp(dirp->d_name, ".") == 0) continue;
     if (strcmp(dirp->d_name, "..") == 0) continue;
-    files.push_back(std::string(dirp->d_name));
+    net_ifaces.push_back(std::string(dirp->d_name));
   }
   closedir(dp);
-}
 
-int list_dirs() {
-  std::string dir = "/sys/class/infiniband/mlx5_0/device/net";
-  std::vector<std::string> files;
-
-  getdir(dir, files);
-
-  for (unsigned int i = 0; i < files.size(); i++) {
-    printf("%s\n", files[i].c_str());
-  }
-  return 0;
+  assert(net_ifaces.size() > 0);
+  return get_net_interface_ipv4_str(net_ifaces[0]);
 }
 
 int main() {
   test_ip_to_str();
   test_str_to_ip();
   test_mac_to_string();
-  list_dirs();
 
   printf("\n");
 
-  std::string iface_arr[] = {"enp4s0f0", "enp4s0f1", "enp132s0f0",
-                             "enp132s0f1"};
-  for (auto s : iface_arr) {
-    std::string ip_str = interface_to_ip_str(s);
+  std::string net_iface_arr[] = {"enp4s0f0", "enp4s0f1", "enp132s0f0",
+                                 "enp132s0f1"};
+  for (auto s : net_iface_arr) {
+    std::string ip_str = get_net_interface_ipv4_str(s);
     printf("Interface %s, IP %s\n", s.c_str(),
+           ip_str.length() != 0 ? ip_str.c_str() : "N/A");
+  }
+
+  std::string mlnx_dev_arr[] = {"mlx5_0", "mlx5_1", "mlx5_2", "mlx5_3"};
+  for (auto s : mlnx_dev_arr) {
+    std::string ip_str = get_mlnx_ipv4_addr(s);
+    printf("Mellanox device %s, IP %s\n", s.c_str(),
            ip_str.length() != 0 ? ip_str.c_str() : "N/A");
   }
 }
