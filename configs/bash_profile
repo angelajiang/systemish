@@ -27,6 +27,9 @@ export PATH
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu
 
+export RTE_SDK="$HOME/dpdk"
+export RTE_TARGET=x86_64-native-linuxapp-gcc
+
 # Make object files (*.o and *.lo) grey
 LS_COLORS='di=36:fi=0:ln=31:pi=5:so=5:bd=5:cd=5:or=31:mi=0:ex=35:*.rpm=90:*.o=90;40:*.lo=90;40'
 export LS_COLORS
@@ -137,7 +140,7 @@ function cformatgit() {
 
   for fl in $allfiles ; do
     extfl="${fl##*.}"
-    if [ "$extfl" == "cc"  ] || [ "$extfl" == "h"  ] || [ "$extfl" == "cpp"  ] ; then
+    if [ "$extfl" == "cc"  ] || [ "$extfl" == "h"  ] || [ "$extfl" == "c"  ] ; then
       if [ -f "$gitdir/$fl" ] ; then
         echo "Format "$gitdir/$fl" ($extfl)"
         clang-format -i "$gitdir/$fl"
@@ -169,7 +172,7 @@ export MLX_CQ_ALLOC_TYPE="HUGE"
 sf() {
   if [ "$#" -lt 1 ]; then echo "sf: Supply string to search for!"; return 1; fi
   printf -v search "%q" "$*"
-  include="cpp,c,cc,h"
+  include="cpp,c,cc,h,sh"
   exclude=".config,.git"
   rg_command='rg --column --line-number --no-heading --fixed-strings --ignore-case --no-ignore --hidden --follow --color "always" -g "*.{'$include'}" -g "!{'$exclude'}/*"'
   files=`eval $rg_command $search | fzf --ansi --multi --reverse | awk -F ':' '{print $1":"$2":"$3}'`
@@ -185,4 +188,5 @@ export autorun_app="small_rpc_tput"
 
 # Initial directory
 cd ~/eRPC
+#cd ~/rdma_bench/rc-swarm
 
