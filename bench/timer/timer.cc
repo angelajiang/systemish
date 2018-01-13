@@ -5,13 +5,9 @@
 #include <string.h>
 #include <time.h>
 
-#define NUM_ITERS (32 * 1024 * 1024) /* Total number of iterations */
+static constexpr size_t kNumIters = (512 * 1024);
 
-/* Timer is sampled ever @STEPPING iterations */
-#define STEPPING 7
-static_assert(STEPPING == 7 || STEPPING == 15 || STEPPING == 31, "");
-
-static inline long long hrd_get_cycles() {
+static inline size_t rdtsc() {
   unsigned low, high;
   unsigned long long val;
   asm volatile("rdtsc" : "=a"(low), "=d"(high));
@@ -20,78 +16,64 @@ static inline long long hrd_get_cycles() {
   return val;
 }
 
-/* Measure overhead of measurement code */
-void test_overhead() {
-  struct timespec start, end;
-  size_t sum = 1;
-
-  clock_gettime(CLOCK_REALTIME, &start);
-
-  for (int i = 0; i < NUM_ITERS; i++) {
-    if ((i & STEPPING) == STEPPING) {
-      sum += (sum + i) * sum;
-    }
-  }
-
-  clock_gettime(CLOCK_REALTIME, &end);
-  size_t tot_ns =
-      (end.tv_sec - start.tv_sec) * 1000000000 + (end.tv_nsec - start.tv_nsec);
-
-  printf("Overhead: Time per measurement = %.2f ns, sum = %lu\n",
-         (double)tot_ns / (NUM_ITERS / STEPPING), sum);
-}
-
-/* Measure overhead of clock_gettime with CLOCK_REALTIME */
+// Measure overhead of clock_gettime with CLOCK_REALTIME
 void test_clock_realtime() {
   struct timespec start, end;
-  size_t sum = 0;
-
   clock_gettime(CLOCK_REALTIME, &start);
 
-  for (int i = 0; i < NUM_ITERS; i++) {
-    if ((i & STEPPING) == STEPPING) {
-      struct timespec temp;
-      clock_gettime(CLOCK_REALTIME, &temp);
-
-      sum += temp.tv_nsec;
-    }
+  struct timespec temp;
+  for (size_t i = 0; i < kNumIters; i++) {
+    clock_gettime(CLOCK_REALTIME, &temp);
+    clock_gettime(CLOCK_REALTIME, &temp);
+    clock_gettime(CLOCK_REALTIME, &temp);
+    clock_gettime(CLOCK_REALTIME, &temp);
+    clock_gettime(CLOCK_REALTIME, &temp);
+    clock_gettime(CLOCK_REALTIME, &temp);
+    clock_gettime(CLOCK_REALTIME, &temp);
+    clock_gettime(CLOCK_REALTIME, &temp);
+    clock_gettime(CLOCK_REALTIME, &temp);
+    clock_gettime(CLOCK_REALTIME, &temp);
   }
 
   clock_gettime(CLOCK_REALTIME, &end);
-  size_t tot_ns =
-      (end.tv_sec - start.tv_sec) * 1000000000 + (end.tv_nsec - start.tv_nsec);
+  double tot_ns =
+      (end.tv_sec - start.tv_sec) * 1000000000.0 +
+      (end.tv_nsec - start.tv_nsec);
 
-  printf("CLOCK_GETTIME: Time per measurement = %.2f ns, sum = %lu\n",
-         (double)tot_ns / (NUM_ITERS / STEPPING), sum);
+  printf("clock_gettime: Time per measurement = %.2f ns, final = %ld\n",
+         tot_ns / (kNumIters * 10), temp.tv_nsec);
 }
 
-/* Measure overhead of rdtsc */
+// Measure overhead of rdtsc
 void test_rdtsc() {
   struct timespec start, end;
   size_t sum = 0;
 
   clock_gettime(CLOCK_REALTIME, &start);
 
-  for (int i = 0; i < NUM_ITERS; i++) {
-    if ((i & STEPPING) == STEPPING) {
-      sum += hrd_get_cycles();
-    }
+  for (size_t i = 0; i < kNumIters; i++) {
+    rdtsc();
+    rdtsc();
+    rdtsc();
+    rdtsc();
+    rdtsc();
+    rdtsc();
+    rdtsc();
+    rdtsc();
+    rdtsc();
+    sum += rdtsc();
   }
 
   clock_gettime(CLOCK_REALTIME, &end);
-  size_t tot_ns =
-      (end.tv_sec - start.tv_sec) * 1000000000 + (end.tv_nsec - start.tv_nsec);
+  double tot_ns =
+      (end.tv_sec - start.tv_sec) * 1000000000.0 +
+      (end.tv_nsec - start.tv_nsec);
 
   printf("RDTSC: Time per measurement = %.2f ns, sum = %lu\n",
-         (double)tot_ns / (NUM_ITERS / STEPPING), sum);
+         tot_ns / (kNumIters * 10), sum);
 }
 
-int main(int argc, char **argv) {
-  test_overhead();
-  test_overhead();
-  test_overhead();
-  test_overhead();
-  test_overhead();
+int main() {
   test_clock_realtime();
   test_clock_realtime();
   test_clock_realtime();
@@ -101,6 +83,6 @@ int main(int argc, char **argv) {
   test_rdtsc();
   test_rdtsc();
   test_rdtsc();
-
+  test_rdtsc();
   return 0;
 }
