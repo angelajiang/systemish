@@ -36,9 +36,8 @@ void test_clock_realtime() {
   }
 
   clock_gettime(CLOCK_REALTIME, &end);
-  double tot_ns =
-      (end.tv_sec - start.tv_sec) * 1000000000.0 +
-      (end.tv_nsec - start.tv_nsec);
+  double tot_ns = (end.tv_sec - start.tv_sec) * 1000000000.0 +
+                  (end.tv_nsec - start.tv_nsec);
 
   printf("clock_gettime: Time per measurement = %.2f ns, final = %ld\n",
          tot_ns / (kNumIters * 10), temp.tv_nsec);
@@ -65,9 +64,8 @@ void test_rdtsc() {
   }
 
   clock_gettime(CLOCK_REALTIME, &end);
-  double tot_ns =
-      (end.tv_sec - start.tv_sec) * 1000000000.0 +
-      (end.tv_nsec - start.tv_nsec);
+  double tot_ns = (end.tv_sec - start.tv_sec) * 1000000000.0 +
+                  (end.tv_nsec - start.tv_nsec);
 
   printf("RDTSC: Time per measurement = %.2f ns, sum = %lu\n",
          tot_ns / (kNumIters * 10), sum);
