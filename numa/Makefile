@@ -1,4 +1,5 @@
 all:
-	g++ -g -std=c++11 -o main main.cc
+	g++ -std=c++11 -o main main.cc -lrt -Wall -Werror
+
 clean:
-	rm main
+	rm -f *.o main
