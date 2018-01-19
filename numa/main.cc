@@ -1,14 +1,14 @@
+#include <assert.h>
 #include <stdio.h>
 #include <boost/algorithm/string.hpp>
 #include <fstream>
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
-#include <assert.h>
 
 int main() {
   std::ifstream infile("/proc/cpuinfo");
-  std::map<size_t, size_t> lcore_to_numa_map;
+  std::vector<size_t> numa_lcores[4];
 
   std::string line;
   std::vector<std::string> split_vec;
@@ -27,16 +27,20 @@ int main() {
       boost::split(split_vec, line, boost::is_any_of(":"));
       boost::trim(split_vec.at(1));
 
-      int file_socket = std::atoi(split_vec.at(1).c_str());
-      assert(file_socket >= 0 && file_socket <= 4);  // 4 sockets
+      int numa = std::atoi(split_vec.at(1).c_str());
+      assert(numa >= 0 && numa <= 3);  // Up to 4 sockets
 
-      lcore_to_numa_map[cur_lcore] = static_cast<size_t>(file_socket);
+      numa_lcores[numa].push_back(cur_lcore);
       cur_lcore++;
     }
   }
 
-  for (auto p : lcore_to_numa_map) {
-    printf("lcore %zu, numa %zu\n", p.first, p.second);
+  for (size_t i = 0; i < 4; i++) {
+    printf("NUMA %zu\n", i);
+    if (numa_lcores[i].empty()) continue;
+
+    for (size_t lcore : numa_lcores[i]) printf("%zu ", lcore);
+    printf("\n");
   }
 
   return 0;
