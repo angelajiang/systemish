@@ -1,19 +1,18 @@
-#include <vector>
 #include <stdio.h>
 #include <stdlib.h>
 #include <algorithm>
+#include <vector>
 
-const double kTimelyMaxRate = 5.0 * 1000 * 1000 * 1000;  // 40 Gbps
-const double kTimelyMinRate = 5.0 * 1000 * 1000;
-const double kTimelyAddRate = 5.0 * 1000 * 1000;
+static double kTimelyMaxRate = 5.0 * 1000 * 1000 * 1000;
+static double kTimelyMinRate = 5.0 * 1000 * 1000;
+static double kTimelyAddRate = 5.0 * 1000 * 1000;
+static double kMinRTT = 2;
+static double kTLow = 50;
+static double kEwmaAlpha = .875;
+static double kBeta = .008;
 
 class Timely {
  public:
-  const double kMinRTT = 2;
-  const double kTLow = 50;
-  const double kEwmaAlpha = .875;
-  const double kBeta = .008;
-
   double prev_rtt = kMinRTT;
   double avg_rtt_diff = 0.0;
   double rate = kTimelyMaxRate;
@@ -28,6 +27,8 @@ class Timely {
 
   void update_rate(double sample_rtt) {
     double rtt_diff = sample_rtt - prev_rtt;
+    prev_rtt = sample_rtt;
+
     avg_rtt_diff = ((1 - kEwmaAlpha) * avg_rtt_diff) + (kEwmaAlpha * rtt_diff);
 
     double new_rate;
@@ -43,8 +44,6 @@ class Timely {
     rate = std::max(new_rate, rate * 0.5);
     rate = std::min(rate, kTimelyMaxRate);
     rate = std::max(rate, kTimelyMinRate);
-
-    prev_rtt = sample_rtt;
   }
 
   /// Convert a default bytes/second rate to Gbit/s
@@ -54,13 +53,14 @@ class Timely {
 };
 
 void test(size_t rtt) {
-  Timely timely;
-  for (size_t i = 0; i < 2000; i++) timely.update_rate(rtt);
+  double P = kTimelyAddRate * kTLow / (kBeta * (rtt - kTLow));  // Predict
 
-  printf("mean %zu us, steady tput %.2f Gbps\n", rtt,
-         Timely::rate_to_gbps(timely.rate));
+  Timely timely;
+  for (size_t i = 0; i < 20000; i++) timely.update_rate(rtt);
+  printf("mean %zu us, steady tput %.2f Gbps, prediction = %.2f\n", rtt,
+         Timely::rate_to_gbps(timely.rate), Timely::rate_to_gbps(P));
 }
 
 int main() {
-  for (size_t iter = 0; iter < 20; iter++) test(5 + iter * 10);
+  for (size_t iter = 1; iter <= 20; iter++) test(kTLow + iter * 10);
 }
