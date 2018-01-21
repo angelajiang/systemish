@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <algorithm>
@@ -19,27 +20,25 @@ class Timely {
 
   Timely() {}
 
-  static double w_func(double g) {
+  static double w(double g) {
     if (g <= -0.25) return 0;
     if (g >= 0.25) return 1;
     return (2 * g + 0.5);
   }
 
   void update_rate(double sample_rtt) {
+    assert(sample_rtt > kTLow);
+
     double rtt_diff = sample_rtt - prev_rtt;
     prev_rtt = sample_rtt;
-
     avg_rtt_diff = ((1 - kEwmaAlpha) * avg_rtt_diff) + (kEwmaAlpha * rtt_diff);
 
     double new_rate;
-    if (sample_rtt < kTLow) {
-      new_rate = rate + kTimelyAddRate;
-    } else {
-      double norm_grad = avg_rtt_diff / kMinRTT;
-      double wght = w_func(norm_grad);
-      double err = (sample_rtt - kTLow) / kTLow;
-      new_rate = rate * (1 - kBeta * wght * err) + kTimelyAddRate * (1 - wght);
-    }
+    double norm_grad = avg_rtt_diff / kMinRTT;
+    double weight = w(norm_grad);
+    double error = (sample_rtt - kTLow) / kTLow;
+    new_rate =
+        rate * (1 - kBeta * weight * error) + kTimelyAddRate * (1 - weight);
 
     rate = std::max(new_rate, rate * 0.5);
     rate = std::min(rate, kTimelyMaxRate);
