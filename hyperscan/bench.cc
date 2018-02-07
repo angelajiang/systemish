@@ -49,10 +49,6 @@ void evaluate_pcre(const char *string) {
     regex += "(0|1)*1";
     for (size_t i = 0; i < n; i++) regex += "(0|1)";
 
-    if (kStringLength < 50) {
-      printf("string = %s, regex = %s\n", string, regex.c_str());
-    }
-
     TscTimer timer;
     timer.start();
     find_all_pcre(regex.c_str(), string, offset_vec);
@@ -102,10 +98,6 @@ void evaluate_hyperscan(const char *string) {
     std::string regex;
     regex += "(0|1)*1";
     for (size_t i = 0; i < n; i++) regex += "(0|1)";
-
-    if (kStringLength < 50) {
-      printf("string = %s, regex = %s\n", string, regex.c_str());
-    }
 
     TscTimer timer;
     timer.start();
