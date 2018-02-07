@@ -5,8 +5,10 @@
 #include <string.h>
 #include <string>
 
-static constexpr size_t kStringLength = 100000;
-static constexpr size_t kStateExposionN = 32;
+#include "timer.h"
+
+static constexpr size_t kStringLength = 10000000;
+double freq_ghz = 0;
 
 static int count = 0;
 static int eventHandler(unsigned int, unsigned long long, unsigned long long,
@@ -46,24 +48,39 @@ int hs_find_all(const char *pattern, const char *subject) {
   return 1;
 }
 
+void evaluate_hyperscan(const char *string) {
+  for (size_t n = 1; n < 32; n++) {
+    // n is the number of (0|1) at the end of the regex
+    std::string regex;
+    regex += "(0|1)*1";
+    for (size_t i = 0; i < n; i++) regex += "(0|1)";
+
+    if (kStringLength < 50) {
+      printf("string = %s, regex = %s\n", string, regex.c_str());
+    }
+
+    TscTimer timer;
+    timer.start();
+    hs_find_all(regex.c_str(), string);
+    timer.stop();
+
+    printf("HyperScan: n = %zu, number of matches: %d, bandwidth = %.3f GB/s\n",
+           n, count, kStringLength / (1000000000.0 * timer.avg_sec(freq_ghz)));
+  }
+}
+
 int main() {
+  freq_ghz = measure_rdtsc_freq();
+  printf("Kicking up TurboBoost\n");
+  nano_sleep(2000000000, freq_ghz);
+  printf("Starting work!\n");
+
   auto *string = new char[kStringLength];
   for (size_t i = 0; i < kStringLength; i++) {
-    string[i] = '0' + (rand() % 2);
+    string[i] = '0' + (rand() % 10);
   }
 
-  std::string regex;
-  regex += "(0|1)*1";
-  for (size_t i = 0; i < kStateExposionN; i++) {
-    regex += "(0|1)";
-  }
+  evaluate_hyperscan(string);
 
-  if (kStringLength < 50) {
-    printf("string = %s, regex = %s\n", string, regex.c_str());
-  }
-
-  hs_find_all(regex.c_str(), string);
-
-  printf("Number of matches: %d\n", count);
   return 0;
 }
