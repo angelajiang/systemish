@@ -1,6 +1,12 @@
 #include <hs/hs.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <string>
+
+static constexpr size_t kStringLength = 100000;
+static constexpr size_t kStateExposionN = 32;
 
 static int count = 0;
 static int eventHandler(unsigned int, unsigned long long, unsigned long long,
@@ -41,8 +47,23 @@ int hs_find_all(const char *pattern, const char *subject) {
 }
 
 int main() {
-  hs_find_all("aa", "aaa");
-  printf("hs matches: %d\n", count);
+  auto *string = new char[kStringLength];
+  for (size_t i = 0; i < kStringLength; i++) {
+    string[i] = '0' + (rand() % 2);
+  }
 
+  std::string regex;
+  regex += "(0|1)*1";
+  for (size_t i = 0; i < kStateExposionN; i++) {
+    regex += "(0|1)";
+  }
+
+  if (kStringLength < 50) {
+    printf("string = %s, regex = %s\n", string, regex.c_str());
+  }
+
+  hs_find_all(regex.c_str(), string);
+
+  printf("Number of matches: %d\n", count);
   return 0;
 }
