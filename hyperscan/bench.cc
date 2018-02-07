@@ -12,14 +12,14 @@ static constexpr size_t kStringLength = 10000000;
 static constexpr size_t kOffsetVecLen = 3;
 double freq_ghz = 0;
 
-static int count = 0;
-static int eventHandler(unsigned int, unsigned long long, unsigned long long,
-                        unsigned int, void *) {
-  count++;
+static int match_count = 0;
+static int event_handler(unsigned int, unsigned long long, unsigned long long,
+                         unsigned int, void *) {
+  match_count++;
   return 0;
 }
 
-void find_all_pcre(const char *pattern, const char *string) {
+void find_all_pcre(const char *pattern, const char *string, int *offset_vec) {
   int string_len = strlen(string);
   const char *error;
   int erroffset;
@@ -30,18 +30,19 @@ void find_all_pcre(const char *pattern, const char *string) {
     exit(-1);
   }
 
-  int offset_vec[kOffsetVecLen];
   int ret = pcre_exec(re, nullptr, string, string_len, 0, 0, offset_vec,
-                      kOffsetVecLen);
-  if (ret != 0) {
-    fprintf(stderr, "ERROR: pcre_exec() failed %s\n", pattern);
+                      kStringLength * 3);
+  if (ret == PCRE_ERROR_BADOPTION || ret == PCRE_ERROR_BADMAGIC) {
+    fprintf(stderr, "ERROR: pcre_exec() failed. Pattern = %s\n", pattern);
     exit(-1);
   }
+  match_count = ret;
 }
 
 void evaluate_pcre(const char *string) {
+  auto *offset_vec = new int[kStringLength * 3];
   for (size_t n = 1; n < 32; n++) {
-    count = 0;
+    match_count = 0;
 
     // n is the number of (0|1) at the end of the regex
     std::string regex;
@@ -54,11 +55,12 @@ void evaluate_pcre(const char *string) {
 
     TscTimer timer;
     timer.start();
-    find_all_pcre(regex.c_str(), string);
+    find_all_pcre(regex.c_str(), string, offset_vec);
     timer.stop();
 
     printf("PCRE: n = %zu, number of matches: %d, bandwidth = %.3f GB/s\n", n,
-           count, kStringLength / (1000000000.0 * timer.avg_sec(freq_ghz)));
+           match_count,
+           kStringLength / (1000000000.0 * timer.avg_sec(freq_ghz)));
   }
 }
 
@@ -81,7 +83,7 @@ void find_all_hyperscan(const char *pattern, const char *string) {
     exit(-1);
   }
 
-  if (hs_scan(database, string, string_len, 0, scratch, eventHandler,
+  if (hs_scan(database, string, string_len, 0, scratch, event_handler,
               nullptr) != HS_SUCCESS) {
     fprintf(stderr, "ERROR: Unable to scan input buffer. Exiting.\n");
     hs_free_scratch(scratch);
@@ -94,7 +96,7 @@ void find_all_hyperscan(const char *pattern, const char *string) {
 
 void evaluate_hyperscan(const char *string) {
   for (size_t n = 1; n < 32; n++) {
-    count = 0;
+    match_count = 0;
 
     // n is the number of (0|1) at the end of the regex
     std::string regex;
@@ -111,14 +113,15 @@ void evaluate_hyperscan(const char *string) {
     timer.stop();
 
     printf("HyperScan: n = %zu, number of matches: %d, bandwidth = %.3f GB/s\n",
-           n, count, kStringLength / (1000000000.0 * timer.avg_sec(freq_ghz)));
+           n, match_count,
+           kStringLength / (1000000000.0 * timer.avg_sec(freq_ghz)));
   }
 }
 
 int main() {
   freq_ghz = measure_rdtsc_freq();
   printf("Kicking up TurboBoost\n");
-  nano_sleep(2000000000, freq_ghz);
+  // nano_sleep(2000000000, freq_ghz);
   printf("Starting work!\n");
 
   auto *string = new char[kStringLength];
