@@ -118,7 +118,15 @@ void evaluate_hyperscan(const char *string) {
   }
 }
 
+void hs_test(const char *regex, const char *string) {
+  printf("regex = %s, string = %s\n", regex, string);
+  find_all_hyperscan(regex, string);
+  printf("count = %d\n", match_count);
+  match_count = 0;
+}
+
 int main() {
+  //hs_test("(a|b)*1(0|1)", "abababa10");
   freq_ghz = measure_rdtsc_freq();
   printf("Kicking up TurboBoost\n");
   nano_sleep(2000000000, freq_ghz);
