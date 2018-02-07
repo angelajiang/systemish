@@ -9,7 +9,6 @@
 #include "timer.h"
 
 static constexpr size_t kStringLength = 10000000;
-static constexpr size_t kOffsetVecLen = 3;
 double freq_ghz = 0;
 
 static int match_count = 0;
@@ -19,7 +18,7 @@ static int event_handler(unsigned int, unsigned long long, unsigned long long,
   return 0;
 }
 
-void find_all_pcre(const char *pattern, const char *string, int *offset_vec) {
+void find_all_pcre(const char *pattern, const char *string) {
   int string_len = strlen(string);
   const char *error;
   int erroffset;
@@ -30,17 +29,26 @@ void find_all_pcre(const char *pattern, const char *string, int *offset_vec) {
     exit(-1);
   }
 
-  int ret = pcre_exec(re, nullptr, string, string_len, 0, 0, offset_vec,
-                      kStringLength * 3);
-  if (ret == PCRE_ERROR_BADOPTION || ret == PCRE_ERROR_BADMAGIC) {
-    fprintf(stderr, "ERROR: pcre_exec() failed. Pattern = %s\n", pattern);
-    exit(-1);
+  int offset_vec[3];
+  int ret = 0;
+  int cur_offset = 0;
+
+  while (true) {
+    ret = pcre_exec(re, nullptr, string, string_len, cur_offset, 0, offset_vec,
+                    3);
+    if (ret == PCRE_ERROR_BADOPTION || ret == PCRE_ERROR_BADMAGIC) {
+      fprintf(stderr, "ERROR: pcre_exec() failed. Pattern = %s\n", pattern);
+      exit(-1);
+    }
+
+    if (ret == -1) break;
+
+    match_count++;
+    cur_offset = offset_vec[0] + 1;
   }
-  match_count = ret;
 }
 
 void evaluate_pcre(const char *string) {
-  auto *offset_vec = new int[kStringLength * 3];
   for (size_t n = 1; n < 32; n++) {
     match_count = 0;
 
@@ -51,7 +59,7 @@ void evaluate_pcre(const char *string) {
 
     TscTimer timer;
     timer.start();
-    find_all_pcre(regex.c_str(), string, offset_vec);
+    find_all_pcre(regex.c_str(), string);
     timer.stop();
 
     printf("PCRE: n = %zu, number of matches: %d, bandwidth = %.3f GB/s\n", n,
