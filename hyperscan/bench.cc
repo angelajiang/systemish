@@ -44,12 +44,12 @@ void find_all_pcre(const char *pattern, const char *string) {
     if (ret == -1) break;
 
     match_count++;
-    cur_offset = offset_vec[0] + 1;
+    cur_offset = offset_vec[1] + 1;
   }
 }
 
 void evaluate_pcre(const char *string) {
-  for (size_t n = 1; n < 32; n++) {
+  for (size_t n = 2; n <= 32; n++) {
     match_count = 0;
 
     // n is the number of (0|1) at the end of the regex
@@ -99,7 +99,7 @@ void find_all_hyperscan(const char *pattern, const char *string) {
 }
 
 void evaluate_hyperscan(const char *string) {
-  for (size_t n = 1; n < 32; n++) {
+  for (size_t n = 2; n <= 32; n++) {
     match_count = 0;
 
     // n is the number of (0|1) at the end of the regex
