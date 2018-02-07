@@ -121,7 +121,7 @@ void evaluate_hyperscan(const char *string) {
 int main() {
   freq_ghz = measure_rdtsc_freq();
   printf("Kicking up TurboBoost\n");
-  // nano_sleep(2000000000, freq_ghz);
+  nano_sleep(2000000000, freq_ghz);
   printf("Starting work!\n");
 
   auto *string = new char[kStringLength];
