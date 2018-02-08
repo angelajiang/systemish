@@ -6,7 +6,7 @@
 #include <string.h>
 #include <string>
 
-#include "timer.h"
+#include "utils/timer.h"
 
 static constexpr size_t kStringLength = 10000000;
 double freq_ghz = 0;
