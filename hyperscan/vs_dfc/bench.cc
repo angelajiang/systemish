@@ -17,8 +17,8 @@ double freq_ghz = 0;
 std::vector<std::string> virus_vec;
 std::vector<char *> pkt_vec;
 
-static int match_count = 0;
-static int event_handler(unsigned int, unsigned long long, unsigned long long,
+static size_t match_count = 0;
+static int hs_ev_handler(unsigned int, unsigned long long, unsigned long long,
                          unsigned int, void *) {
   match_count++;
   return 0;
@@ -52,7 +52,7 @@ void evaluate_hyperscan() {
   size_t num_pkts_matched = 0;
   for (size_t i = 0; i < kNumPkts; i++) {
     match_count = 0;
-    if (hs_scan(db, pkt_vec[i], kPktSize, 0, scratch, event_handler, nullptr) !=
+    if (hs_scan(db, pkt_vec[i], kPktSize, 0, scratch, hs_ev_handler, nullptr) !=
         HS_SUCCESS) {
       fprintf(stderr, "ERROR: Unable to scan input buffer. Exiting.\n");
       hs_free_scratch(scratch);
@@ -64,12 +64,16 @@ void evaluate_hyperscan() {
 
   timer.stop();
 
-  printf("HyperScan: number of matches: %d, bandwidth = %.3f GB/s\n",
-         match_count,
+  printf("HyperScan: packets matched: %zu, bandwidth = %.3f GB/s\n",
+         num_pkts_matched,
          (kPktSize * kNumPkts) / (1000000000.0 * timer.avg_sec(freq_ghz)));
 
   hs_free_scratch(scratch);
   hs_free_database(db);
+}
+
+void dfc_ev_handler(unsigned char *, uint32_t *, uint32_t list_size) {
+  match_count = list_size;
 }
 
 void evaluate_dfc() {
@@ -89,8 +93,8 @@ void evaluate_dfc() {
   size_t num_pkts_matched = 0;
   for (size_t i = 0; i < kNumPkts; i++) {
     match_count = 0;
-    int res = DFC_Search(dfc, (unsigned char *)pkt_vec[i], kPktSize, nullptr);
-    num_pkts_matched += (res > 0);
+    DFC_Search(dfc, (unsigned char *)pkt_vec[i], kPktSize, dfc_ev_handler);
+    num_pkts_matched += (match_count > 0);
   }
 
   timer.stop();
@@ -103,7 +107,7 @@ void evaluate_dfc() {
 int main() {
   freq_ghz = measure_rdtsc_freq();
   printf("Kicking up TurboBoost. freq_ghz = %.2f\n", freq_ghz);
-  nano_sleep(2000000000, freq_ghz);
+  // nano_sleep(2000000000, freq_ghz);
   printf("Starting work!\n");
 
   // Get the list of viruses
