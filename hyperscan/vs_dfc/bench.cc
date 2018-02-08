@@ -28,15 +28,19 @@ void evaluate_hyperscan() {
   hs_database_t *db;
   hs_compile_error_t *compile_err;
 
-  for (std::string &virus : virus_vec) {
-    int ret =
-        hs_compile(virus.c_str(), 0, HS_MODE_BLOCK, nullptr, &db, &compile_err);
-    if (ret != HS_SUCCESS) {
-      fprintf(stderr, "ERROR: Unable to compile regex \"%s\": %s\n",
-              virus.c_str(), compile_err->message);
-      hs_free_compile_error(compile_err);
-      exit(-1);
-    }
+  unsigned int *ids = new unsigned int[virus_vec.size()];
+  char **virus_arr = new char *[virus_vec.size()];
+  for (size_t i = 0; i < virus_vec.size(); i++) {
+    ids[i] = i;
+    virus_arr[i] = (char *)virus_vec[i].c_str();
+  }
+
+  int ret = hs_compile_multi(virus_arr, nullptr, ids, virus_vec.size(),
+                             HS_MODE_BLOCK, nullptr, &db, &compile_err);
+  if (ret != HS_SUCCESS) {
+    fprintf(stderr, "ERROR: Unable to compile\n");
+    hs_free_compile_error(compile_err);
+    exit(-1);
   }
 
   hs_scratch_t *scratch = nullptr;
@@ -59,6 +63,7 @@ void evaluate_hyperscan() {
       exit(-1);
     }
 
+    // printf("HS: Packet %zu: match = %u\n", i, (match_count > 0));
     num_pkts_matched += (match_count > 0);
   }
 
@@ -94,6 +99,8 @@ void evaluate_dfc() {
   for (size_t i = 0; i < kNumPkts; i++) {
     match_count = 0;
     DFC_Search(dfc, (unsigned char *)pkt_vec[i], kPktSize, dfc_ev_handler);
+
+    // printf("DFC: Packet %zu: match = %u\n", i, (match_count > 0));
     num_pkts_matched += (match_count > 0);
   }
 
@@ -107,16 +114,16 @@ void evaluate_dfc() {
 int main() {
   freq_ghz = measure_rdtsc_freq();
   printf("Kicking up TurboBoost. freq_ghz = %.2f\n", freq_ghz);
-  // nano_sleep(2000000000, freq_ghz);
+  nano_sleep(2000000000, freq_ghz);
   printf("Starting work!\n");
 
   // Get the list of viruses
-  std::ifstream in("virus.txt");
+  std::ifstream virus_file("virus.txt");
   while (true) {
-    std::string s;
-    std::getline(in, s);
-    if (s.empty()) break;
-    virus_vec.push_back(s);
+    std::string virus;
+    std::getline(virus_file, virus);
+    if (virus.empty()) break;
+    virus_vec.push_back(virus);
   }
   printf("Number of virus = %zu\n", virus_vec.size());
 
@@ -125,9 +132,23 @@ int main() {
   for (size_t i = 0; i < kNumPkts; i++) {
     pkt_vec[i] = new char[kPktSize];
     for (size_t j = 0; j < kPktSize; j++) {
-      pkt_vec[i][j] = 'a' + (rand() % 25);
+      pkt_vec[i][j] = static_cast<char>(rand() % 128);
     }
   }
+
+  /*
+  std::ifstream pkt_file("packets.txt");
+  size_t pkt_i = 0;
+  while (true) {
+    std::string pkt;
+    std::getline(pkt_file, pkt);
+    if (pkt.empty()) break;
+    pkt_vec[pkt_i] = new char[kPktSize];
+    memcpy(pkt_vec[pkt_i], pkt.c_str(), kPktSize);
+
+    pkt_i++;
+  }
+  */
 
   evaluate_hyperscan();
   evaluate_dfc();
