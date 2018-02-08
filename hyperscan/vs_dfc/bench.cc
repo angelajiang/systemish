@@ -8,9 +8,12 @@
 
 #include "utils/timer.h"
 
-static constexpr size_t kStringLength = 1000000;
+static constexpr size_t kNumPkts = 30000;
+static constexpr size_t kPktSize = 1024;
+
 double freq_ghz = 0;
 std::vector<std::string> virus_vec;
+std::vector<char *> pkt_vec;
 
 static int match_count = 0;
 static int event_handler(unsigned int, unsigned long long, unsigned long long,
@@ -19,10 +22,10 @@ static int event_handler(unsigned int, unsigned long long, unsigned long long,
   return 0;
 }
 
-void evaluate_hyperscan(const char *string, const char *regex) {
+void evaluate_hyperscan() {
   match_count = 0;
 
-  hs_database_t *database;
+  hs_database_t *db;
   hs_compile_error_t *compile_err;
 
   std::ifstream in("virus.txt");
@@ -35,40 +38,47 @@ void evaluate_hyperscan(const char *string, const char *regex) {
   }
 
   for (std::string &virus : virus_vec) {
-    if (hs_compile(virus.c_str(), 0, HS_MODE_BLOCK, nullptr, &database,
-                   &compile_err) != HS_SUCCESS) {
-      fprintf(stderr, "ERROR: Unable to compile regex \"%s\": %s\n", regex,
-              compile_err->message);
+    int ret =
+        hs_compile(virus.c_str(), 0, HS_MODE_BLOCK, nullptr, &db, &compile_err);
+    if (ret != HS_SUCCESS) {
+      fprintf(stderr, "ERROR: Unable to compile regex \"%s\": %s\n",
+              virus.c_str(), compile_err->message);
       hs_free_compile_error(compile_err);
       exit(-1);
     }
   }
 
   hs_scratch_t *scratch = nullptr;
-  if (hs_alloc_scratch(database, &scratch) != HS_SUCCESS) {
+  if (hs_alloc_scratch(db, &scratch) != HS_SUCCESS) {
     fprintf(stderr, "ERROR: Unable to allocate scratch space. Exiting.\n");
-    hs_free_database(database);
+    hs_free_database(db);
     exit(-1);
   }
 
   TscTimer timer;
   timer.start();
 
-  unsigned int string_len = strlen(string);
-  if (hs_scan(database, string, string_len, 0, scratch, event_handler,
-              nullptr) != HS_SUCCESS) {
-    fprintf(stderr, "ERROR: Unable to scan input buffer. Exiting.\n");
-    hs_free_scratch(scratch);
-    exit(-1);
+  size_t num_pkts_matched = 0;
+  for (size_t i = 0; i < kNumPkts; i++) {
+    match_count = 0;
+    if (hs_scan(db, pkt_vec[i], kPktSize, 0, scratch, event_handler, nullptr) !=
+        HS_SUCCESS) {
+      fprintf(stderr, "ERROR: Unable to scan input buffer. Exiting.\n");
+      hs_free_scratch(scratch);
+      exit(-1);
+    }
+
+    num_pkts_matched += (match_count > 0);
   }
 
   timer.stop();
 
   printf("HyperScan: number of matches: %d, bandwidth = %.3f GB/s\n",
-         match_count, kStringLength / (1000000000.0 * timer.avg_sec(freq_ghz)));
+         match_count,
+         (kPktSize * kNumPkts) / (1000000000.0 * timer.avg_sec(freq_ghz)));
 
   hs_free_scratch(scratch);
-  hs_free_database(database);
+  hs_free_database(db);
 }
 
 int main() {
@@ -77,13 +87,14 @@ int main() {
   nano_sleep(2000000000, freq_ghz);
   printf("Starting work!\n");
 
-  auto *string = new char[kStringLength];
-  for (size_t i = 0; i < kStringLength; i++) {
-    string[i] = '0' + (rand() % 10);
+  pkt_vec.resize(kNumPkts);
+  for (size_t i = 0; i < kNumPkts; i++) {
+    pkt_vec[i] = new char[kPktSize];
+    for (size_t j = 0; j < kPktSize; j++) {
+      pkt_vec[i][j] = '0' + (rand() % 10);
+    }
   }
 
-  const char *regex = "asdada";
-  evaluate_hyperscan(string, regex);
-
+  evaluate_hyperscan();
   return 0;
 }
