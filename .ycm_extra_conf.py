@@ -33,10 +33,14 @@
 import os
 import ycm_core
 
+from os.path import expanduser
+home_dir = expanduser("~")
+
 flags = [
     '-x',
     'c++',
     '-DFAULT_INJECTION',
+    '-I' + str(home_dir) + '/systemish',
     '-Wall',
     '-Werror',
     '-Wextra',
@@ -44,7 +48,7 @@ flags = [
     '-Wno-unused-function',
     '-Wold-style-cast',
     '-Wsign-conversion',
-    '-std=c++14',
+    '-std=c++11',
 ]
 
 
