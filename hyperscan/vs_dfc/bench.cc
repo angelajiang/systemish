@@ -17,31 +17,33 @@ static constexpr size_t kPktSize = 1024;
 double freq_ghz = 0;
 
 struct byte_arr_t {
-  size_t num_bytes;
-  unsigned char *byte_arr;
+  size_t num_bytes;      // Number of non-zero bytes
+  unsigned char *bytes;  // Null-terminated byte array
 
-  byte_arr_t(size_t num_bytes, unsigned char *byte_arr)
-      : num_bytes(num_bytes), byte_arr(byte_arr) {}
+  byte_arr_t(size_t num_bytes, unsigned char *bytes)
+      : num_bytes(num_bytes), bytes(bytes) {}
 
-  // Generate from a string of space-separated bytes
+  // Generate from a string of space-separated byte values (e.g., "23 127")
   static byte_arr_t gen_from_string(std::string &byte_string) {
     std::vector<std::string> byte_vec;
     boost::split(byte_vec, byte_string, boost::is_any_of(" "));
 
     size_t num_bytes = byte_vec.size();
     rt_assert(num_bytes > 0);
-    auto *byte_arr = new unsigned char[num_bytes];
+    auto *byte_arr = new unsigned char[num_bytes + 1];
     for (size_t i = 0; i < num_bytes; i++) {
       byte_arr[i] = std::stoi(byte_vec.at(i));
+      rt_assert(byte_arr[i] != 0);
     }
 
+    byte_arr[num_bytes] = 0;  // Null-termimate
     return byte_arr_t(num_bytes, byte_arr);
   }
 
   void print() {
     printf("%zu | ", num_bytes);
     for (size_t i = 0; i < num_bytes; i++) {
-      printf("%u ", byte_arr[i]);
+      printf("%u ", bytes[i]);
     }
     printf("\n");
   }
@@ -65,7 +67,7 @@ void evaluate_hyperscan() {
   char **virus_arr = new char *[virus_vec.size()];
   for (size_t i = 0; i < virus_vec.size(); i++) {
     ids[i] = i;
-    virus_arr[i] = (char *)virus_vec[i].c_str();
+    virus_arr[i] = reinterpret_cast<char *>(virus_vec[i].bytes);
   }
 
   int ret = hs_compile_multi(virus_arr, nullptr, ids, virus_vec.size(),
@@ -87,24 +89,29 @@ void evaluate_hyperscan() {
   timer.start();
 
   size_t num_pkts_matched = 0;
-  for (size_t i = 0; i < kNumPkts; i++) {
+  size_t tot_bytes = 0;
+  for (size_t i = 0; i < pkt_vec.size(); i++) {
     match_count = 0;
-    if (hs_scan(db, pkt_vec[i], kPktSize, 0, scratch, hs_ev_handler, nullptr) !=
-        HS_SUCCESS) {
-      fprintf(stderr, "ERROR: Unable to scan input buffer. Exiting.\n");
+    const char *pkt = reinterpret_cast<char *>(pkt_vec[i].bytes);
+    int ret = hs_scan(db, pkt, pkt_vec[i].num_bytes, 0, scratch, hs_ev_handler,
+                      nullptr);
+
+    if (ret != HS_SUCCESS) {
+      fprintf(stderr, "ERROR: Unable to scan packet %zu. Exiting.\n", i);
       hs_free_scratch(scratch);
       exit(-1);
     }
 
     // printf("HS: Packet %zu: match = %u\n", i, (match_count > 0));
     num_pkts_matched += (match_count > 0);
+    tot_bytes += pkt_vec[i].num_bytes;
   }
 
   timer.stop();
 
   printf("HyperScan: packets matched: %zu, bandwidth = %.3f GB/s\n",
          num_pkts_matched,
-         (kPktSize * kNumPkts) / (1000000000.0 * timer.avg_sec(freq_ghz)));
+         tot_bytes / (1000000000.0 * timer.avg_sec(freq_ghz)));
 
   hs_free_scratch(scratch);
   hs_free_database(db);
@@ -118,9 +125,8 @@ void evaluate_dfc() {
   DFC_STRUCTURE *dfc = DFC_New();
 
   size_t pattern_id = 0;
-  for (std::string &virus : virus_vec) {
-    DFC_AddPattern(dfc, (unsigned char *)virus.c_str(), strlen(virus.c_str()),
-                   0, pattern_id++);
+  for (byte_arr_t &virus : virus_vec) {
+    DFC_AddPattern(dfc, virus.bytes, virus.num_bytes, 0, pattern_id++);
   }
 
   DFC_Compile(dfc);
@@ -129,25 +135,27 @@ void evaluate_dfc() {
   timer.start();
 
   size_t num_pkts_matched = 0;
-  for (size_t i = 0; i < kNumPkts; i++) {
+  size_t tot_bytes = 0;
+  for (size_t i = 0; i < pkt_vec.size(); i++) {
     match_count = 0;
-    DFC_Search(dfc, (unsigned char *)pkt_vec[i], kPktSize, dfc_ev_handler);
+    DFC_Search(dfc, pkt_vec[i].bytes, kPktSize, dfc_ev_handler);
 
     // printf("DFC: Packet %zu: match = %u\n", i, (match_count > 0));
     num_pkts_matched += (match_count > 0);
+    tot_bytes += pkt_vec[i].num_bytes;
   }
 
   timer.stop();
 
   printf("DFC: number of matches: %zu, bandwidth = %.3f GB/s\n",
          num_pkts_matched,
-         (kPktSize * kNumPkts) / (1000000000.0 * timer.avg_sec(freq_ghz)));
+         tot_bytes / (1000000000.0 * timer.avg_sec(freq_ghz)));
 }
 
 int main() {
   freq_ghz = measure_rdtsc_freq();
   printf("Kicking up TurboBoost. freq_ghz = %.2f\n", freq_ghz);
-  //nano_sleep(2000000000, freq_ghz);
+  // nano_sleep(2000000000, freq_ghz);
   printf("Starting work!\n");
 
   // Get the list of viruses
@@ -156,6 +164,11 @@ int main() {
     std::string virus;
     std::getline(virus_file, virus);
     if (virus.empty()) break;
+
+    byte_arr_t byte_arr = byte_arr_t::gen_from_string(virus);
+    for (size_t i = 0; i < byte_arr.num_bytes; i++) {
+    }
+
     virus_vec.push_back(byte_arr_t::gen_from_string(virus));
   }
 
