@@ -126,6 +126,7 @@ void evaluate_dfc() {
 
   size_t pattern_id = 0;
   for (byte_arr_t &virus : virus_vec) {
+    rt_assert(strlen(reinterpret_cast<char *>(virus.bytes)) == virus.num_bytes);
     DFC_AddPattern(dfc, virus.bytes, virus.num_bytes, 0, pattern_id++);
   }
 
@@ -138,7 +139,7 @@ void evaluate_dfc() {
   size_t tot_bytes = 0;
   for (size_t i = 0; i < pkt_vec.size(); i++) {
     match_count = 0;
-    DFC_Search(dfc, pkt_vec[i].bytes, kPktSize, dfc_ev_handler);
+    DFC_Search(dfc, pkt_vec[i].bytes, pkt_vec[i].num_bytes, dfc_ev_handler);
 
     // printf("DFC: Packet %zu: match = %u\n", i, (match_count > 0));
     num_pkts_matched += (match_count > 0);
@@ -164,11 +165,6 @@ int main() {
     std::string virus;
     std::getline(virus_file, virus);
     if (virus.empty()) break;
-
-    byte_arr_t byte_arr = byte_arr_t::gen_from_string(virus);
-    for (size_t i = 0; i < byte_arr.num_bytes; i++) {
-    }
-
     virus_vec.push_back(byte_arr_t::gen_from_string(virus));
   }
 
