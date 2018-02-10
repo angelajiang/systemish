@@ -15,8 +15,14 @@
 #include <vector>
 
 #define _unused(x) ((void)(x))  // Make production build happy
+
+#ifndef likely
 #define likely(x) __builtin_expect(!!(x), 1)
+#endif
+
+#ifndef unlikely
 #define unlikely(x) __builtin_expect(!!(x), 0)
+#endif
 
 #define KB(x) (static_cast<size_t>(x) << 10)
 #define KB_(x) (KB(x) - 1)

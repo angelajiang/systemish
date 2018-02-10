@@ -1,4 +1,6 @@
-// Process a content_strings.txt file to generate byte lists
+// Process a content_strings.txt file to generate byte lists. Patterns that
+// have a byte that is zero or larger than 127 are ignored.
+//
 // The output should be redirected to content_bytes.txt
 #include <assert.h>
 #include <stdint.h>
@@ -39,6 +41,8 @@ int main() {
 
     std::string ret;
     auto mode = Mode::kChar;
+    bool all_ascii = true;
+
     for (size_t i = 0; i < line.length(); i++) {
       char c = line.at(i);
       if (c == '|') {
@@ -57,13 +61,21 @@ int main() {
         assert(i + 1 < line.length());
         i++;
         char c2 = line.at(i);
-
         size_t number = hex_to_int(c2) + (16 * hex_to_int(c));
+
+        // Ignore numbers that won't fit in char*
+        if (number == 0 || number > 127) {
+          all_ascii = false;
+          break;
+        }
+
         ret += std::to_string(number) + " ";
       }
     }
 
-    assert(mode == Mode::kChar);
-    printf("%s\n", ret.c_str());
+    if (all_ascii) {
+      assert(mode == Mode::kChar);
+      printf("%s\n", ret.c_str());
+    }
   }
 }

@@ -39,7 +39,7 @@ struct byte_arr_t {
   }
 
   void print() {
-    printf("%zu |", num_bytes);
+    printf("%zu | ", num_bytes);
     for (size_t i = 0; i < num_bytes; i++) {
       printf("%u ", byte_arr[i]);
     }
@@ -47,8 +47,8 @@ struct byte_arr_t {
   }
 };
 
-std::vector<byte_arr_t *> virus_vec;
-std::vector<byte_arr_t *> pkt_vec;
+std::vector<byte_arr_t> virus_vec;
+std::vector<byte_arr_t> pkt_vec;
 
 static size_t match_count = 0;
 static int hs_ev_handler(unsigned int, unsigned long long, unsigned long long,
@@ -56,7 +56,7 @@ static int hs_ev_handler(unsigned int, unsigned long long, unsigned long long,
   match_count++;
   return 0;
 }
-/*
+
 void evaluate_hyperscan() {
   hs_database_t *db;
   hs_compile_error_t *compile_err;
@@ -143,12 +143,11 @@ void evaluate_dfc() {
          num_pkts_matched,
          (kPktSize * kNumPkts) / (1000000000.0 * timer.avg_sec(freq_ghz)));
 }
-*/
 
 int main() {
   freq_ghz = measure_rdtsc_freq();
   printf("Kicking up TurboBoost. freq_ghz = %.2f\n", freq_ghz);
-  nano_sleep(2000000000, freq_ghz);
+  //nano_sleep(2000000000, freq_ghz);
   printf("Starting work!\n");
 
   // Get the list of viruses
@@ -157,11 +156,11 @@ int main() {
     std::string virus;
     std::getline(virus_file, virus);
     if (virus.empty()) break;
-    virus_vec.emplace_back(byte_arr_t::gen_from_string(virus));
+    virus_vec.push_back(byte_arr_t::gen_from_string(virus));
   }
 
   printf("Number of virus = %zu:\n", virus_vec.size());
-  for (auto &byte_arr : virus_vec) byte_arr->print();
+  for (auto &byte_arr : virus_vec) byte_arr.print();
 
   // Generate random packets
   /*pkt_vec.resize(kNumPkts);
@@ -177,13 +176,13 @@ int main() {
     std::string pkt;
     std::getline(pkt_file, pkt);
     if (pkt.empty()) break;
-    pkt_vec.emplace_back(byte_arr_t::gen_from_string(pkt));
+    pkt_vec.push_back(byte_arr_t::gen_from_string(pkt));
   }
 
   printf("Number of packets = %zu:\n", pkt_vec.size());
-  for (auto &byte_arr : pkt_vec) byte_arr->print();
+  for (auto &byte_arr : pkt_vec) byte_arr.print();
 
-  // evaluate_hyperscan();
-  // evaluate_dfc();
+  evaluate_hyperscan();
+  evaluate_dfc();
   return 0;
 }
