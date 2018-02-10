@@ -1,3 +1,6 @@
+#ifndef SYSTEMISH_COMMON_H
+#define SYSTEMISH_COMMON_H
+
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -39,3 +42,5 @@ static inline void exit_assert(bool condition, std::string error_msg) {
 static inline void rt_assert(bool condition) {
   if (unlikely(!condition)) throw std::runtime_error("Error");
 }
+
+#endif

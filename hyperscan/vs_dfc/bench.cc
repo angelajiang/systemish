@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <boost/algorithm/string.hpp>
 #include <fstream>
 #include <string>
 
@@ -14,8 +15,40 @@ static constexpr size_t kNumPkts = 30000;
 static constexpr size_t kPktSize = 1024;
 
 double freq_ghz = 0;
-std::vector<std::string> virus_vec;
-std::vector<char *> pkt_vec;
+
+struct byte_arr_t {
+  size_t num_bytes;
+  unsigned char *byte_arr;
+
+  byte_arr_t(size_t num_bytes, unsigned char *byte_arr)
+      : num_bytes(num_bytes), byte_arr(byte_arr) {}
+
+  // Generate from a string of space-separated bytes
+  static byte_arr_t gen_from_string(std::string &byte_string) {
+    std::vector<std::string> byte_vec;
+    boost::split(byte_vec, byte_string, boost::is_any_of(" "));
+
+    size_t num_bytes = byte_vec.size();
+    rt_assert(num_bytes > 0);
+    auto *byte_arr = new unsigned char[num_bytes];
+    for (size_t i = 0; i < num_bytes; i++) {
+      byte_arr[i] = std::stoi(byte_vec.at(i));
+    }
+
+    return byte_arr_t(num_bytes, byte_arr);
+  }
+
+  void print() {
+    printf("%zu |", num_bytes);
+    for (size_t i = 0; i < num_bytes; i++) {
+      printf("%u ", byte_arr[i]);
+    }
+    printf("\n");
+  }
+};
+
+std::vector<byte_arr_t *> virus_vec;
+std::vector<byte_arr_t *> pkt_vec;
 
 static size_t match_count = 0;
 static int hs_ev_handler(unsigned int, unsigned long long, unsigned long long,
@@ -23,7 +56,7 @@ static int hs_ev_handler(unsigned int, unsigned long long, unsigned long long,
   match_count++;
   return 0;
 }
-
+/*
 void evaluate_hyperscan() {
   hs_database_t *db;
   hs_compile_error_t *compile_err;
@@ -110,6 +143,7 @@ void evaluate_dfc() {
          num_pkts_matched,
          (kPktSize * kNumPkts) / (1000000000.0 * timer.avg_sec(freq_ghz)));
 }
+*/
 
 int main() {
   freq_ghz = measure_rdtsc_freq();
@@ -118,39 +152,38 @@ int main() {
   printf("Starting work!\n");
 
   // Get the list of viruses
-  std::ifstream virus_file("virus.txt");
+  std::ifstream virus_file("test_patterns/test_bytes.txt");
   while (true) {
     std::string virus;
     std::getline(virus_file, virus);
     if (virus.empty()) break;
-    virus_vec.push_back(virus);
+    virus_vec.emplace_back(byte_arr_t::gen_from_string(virus));
   }
-  printf("Number of virus = %zu\n", virus_vec.size());
+
+  printf("Number of virus = %zu:\n", virus_vec.size());
+  for (auto &byte_arr : virus_vec) byte_arr->print();
 
   // Generate random packets
-  pkt_vec.resize(kNumPkts);
+  /*pkt_vec.resize(kNumPkts);
   for (size_t i = 0; i < kNumPkts; i++) {
     pkt_vec[i] = new char[kPktSize];
     for (size_t j = 0; j < kPktSize; j++) {
       pkt_vec[i][j] = static_cast<char>(rand() % 128);
     }
-  }
+  }*/
 
-  /*
   std::ifstream pkt_file("packets.txt");
-  size_t pkt_i = 0;
   while (true) {
     std::string pkt;
     std::getline(pkt_file, pkt);
     if (pkt.empty()) break;
-    pkt_vec[pkt_i] = new char[kPktSize];
-    memcpy(pkt_vec[pkt_i], pkt.c_str(), kPktSize);
-
-    pkt_i++;
+    pkt_vec.emplace_back(byte_arr_t::gen_from_string(pkt));
   }
-  */
 
-  evaluate_hyperscan();
-  evaluate_dfc();
+  printf("Number of packets = %zu:\n", pkt_vec.size());
+  for (auto &byte_arr : pkt_vec) byte_arr->print();
+
+  // evaluate_hyperscan();
+  // evaluate_dfc();
   return 0;
 }

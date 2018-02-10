@@ -1,6 +1,9 @@
+#ifndef SYSTEMISH_TIMER_H
+#define SYSTEMISH_TIMER_H
+
 #include <stdint.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 #include "common.h"
 
@@ -120,3 +123,5 @@ class TscTimer {
     return to_nsec(avg_cycles(), freq_ghz);
   }
 };
+
+#endif
