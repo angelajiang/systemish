@@ -14,6 +14,9 @@
 static constexpr size_t kNumPkts = 30000;
 static constexpr size_t kPktSize = 1024;
 
+static constexpr bool kLoadSnortPatterns = true;  // Else load test patterns
+static constexpr bool kUseRandomPackets = true;   // Else use packets.txt
+
 double freq_ghz = 0;
 
 struct byte_arr_t {
@@ -32,8 +35,7 @@ struct byte_arr_t {
     rt_assert(num_bytes > 0);
     auto *byte_arr = new unsigned char[num_bytes + 1];
     for (size_t i = 0; i < num_bytes; i++) {
-      byte_arr[i] = std::stoi(byte_vec.at(i));
-      rt_assert(byte_arr[i] != 0);
+      byte_arr[i] = std::stoull(byte_vec.at(i));
     }
 
     byte_arr[num_bytes] = 0;  // Null-termimate
@@ -67,20 +69,31 @@ void evaluate_hyperscan() {
   char **virus_arr = new char *[virus_vec.size()];
   for (size_t i = 0; i < virus_vec.size(); i++) {
     ids[i] = i;
-    virus_arr[i] = reinterpret_cast<char *>(virus_vec[i].bytes);
+
+    size_t hexlen = virus_vec[i].num_bytes * 4;
+    char *hexbuf = new char[hexlen + 1];
+
+    size_t j;
+    char *buf;
+    for (j = 0, buf = hexbuf; j < virus_vec[i].num_bytes; j++, buf += 4) {
+      snprintf(buf, 5, "\\x%02x", virus_vec[i].bytes[j]);
+    }
+    hexbuf[hexlen] = '\0';
+
+    virus_arr[i] = hexbuf;
   }
 
   int ret = hs_compile_multi(virus_arr, nullptr, ids, virus_vec.size(),
                              HS_MODE_BLOCK, nullptr, &db, &compile_err);
   if (ret != HS_SUCCESS) {
-    fprintf(stderr, "ERROR: Unable to compile\n");
+    fprintf(stderr, "ERROR: HS: Unable to compile\n");
     hs_free_compile_error(compile_err);
     exit(-1);
   }
 
   hs_scratch_t *scratch = nullptr;
   if (hs_alloc_scratch(db, &scratch) != HS_SUCCESS) {
-    fprintf(stderr, "ERROR: Unable to allocate scratch space. Exiting.\n");
+    fprintf(stderr, "ERROR: HS: Unable to allocate scratch space. Exiting.\n");
     hs_free_database(db);
     exit(-1);
   }
@@ -126,7 +139,6 @@ void evaluate_dfc() {
 
   size_t pattern_id = 0;
   for (byte_arr_t &virus : virus_vec) {
-    rt_assert(strlen(reinterpret_cast<char *>(virus.bytes)) == virus.num_bytes);
     DFC_AddPattern(dfc, virus.bytes, virus.num_bytes, 0, pattern_id++);
   }
 
@@ -160,7 +172,9 @@ int main() {
   printf("Starting work!\n");
 
   // Get the list of viruses
-  std::ifstream virus_file("test_patterns/test_bytes.txt");
+  auto virus_filename = kLoadSnortPatterns ? "snort_patterns/content_bytes.txt"
+                                           : "test_patterns/test_bytes.txt";
+  std::ifstream virus_file(virus_filename);
   while (true) {
     std::string virus;
     std::getline(virus_file, virus);

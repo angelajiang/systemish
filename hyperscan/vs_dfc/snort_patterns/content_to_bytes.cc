@@ -1,12 +1,11 @@
-// Process a content_strings.txt file to generate byte lists. Patterns that
-// have a byte that is zero or larger than 127 are ignored.
-//
+// Process a content_strings.txt file to generate byte lists.
 // The output should be redirected to content_bytes.txt
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <boost/algorithm/string.hpp>
 #include <fstream>
 #include <string>
 
@@ -62,19 +61,13 @@ int main() {
         i++;
         char c2 = line.at(i);
         size_t number = hex_to_int(c2) + (16 * hex_to_int(c));
-
-        // Ignore numbers that won't fit in char*
-        if (number == 0 || number > 127) {
-          all_ascii = false;
-          break;
-        }
-
         ret += std::to_string(number) + " ";
       }
     }
 
     if (all_ascii) {
       assert(mode == Mode::kChar);
+      boost::algorithm::trim(ret);
       printf("%s\n", ret.c_str());
     }
   }
