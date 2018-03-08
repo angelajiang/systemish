@@ -1,4 +1,4 @@
 all:
-	gcc -O3 -o bench bench.c -lrt -Wall -Werror -lpapi
+	g++ -std=c++11 -O3 -o bench bench.cc -lrt -Wall -Werror -lpapi
 clean:
 	rm -f *.o bench
