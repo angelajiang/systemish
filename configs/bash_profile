@@ -169,6 +169,7 @@ export MLX5_SINGLE_THREADED=1
 export MLX_QP_ALLOC_TYPE="HUGE"
 export MLX_CQ_ALLOC_TYPE="HUGE"
 
+# Requires vim-fetch plugin
 sf() {
   if [ "$#" -lt 1 ]; then echo "sf: Supply string to search for!"; return 1; fi
   printf -v search "%q" "$*"
