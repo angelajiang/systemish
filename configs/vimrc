@@ -51,6 +51,10 @@ Plugin 'skwp/greplace.vim'
 Plugin 'kopischke/vim-fetch'
 Plugin 'cmdline-completion'
 
+" Project-specific vimrc
+Plugin 'embear/vim-localvimrc'
+let g:localvimrc_whitelist='/home/akalia/eRPC/drivers/*'
+
 " DirDiff, only for source code files
 Plugin 'will133/vim-dirdiff'
 let g:DirDiffExcludes = "*.o,*.lo,*.Plo,*.a,*.so,*.in,*.am,*.log,*.status,autom4te.cache,*.1,*.0"
