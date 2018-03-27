@@ -14,3 +14,5 @@ template <int T>
 void Foo<T>::print_2(std::string x) {
   printf("print_2 %u: %s\n", T, x.c_str());
 }
+
+template class Foo<2>;

@@ -15,6 +15,4 @@ class Foo {
   void print_2(std::string x);
 };
 
-template class Foo<2>;
-
 #endif
