@@ -22,12 +22,15 @@ sudo su akalia -c 'ln -s /proj/ron-PG0/akalia/bash_history /users/akalia/.bash_h
 # Install fzf
 sudo su akalia -c '/users/akalia/.fzf/install --key-bindings --completion --update-rc'
 
-# Copy small configs
+# Copy small configs directly from systemish
 sudo su akalia -c 'cp /proj/ron-PG0/akalia/systemish/configs/bash_profile /users/akalia/.bash_profile'
 sudo su akalia -c 'cp /proj/ron-PG0/akalia/systemish/configs/vimrc /users/akalia/.vimrc'
 sudo su akalia -c 'cp /proj/ron-PG0/akalia/systemish/configs/gitconfig /users/akalia/.gitconfig'
 sudo su akalia -c 'cp /proj/ron-PG0/akalia/systemish/configs/gdbinit /users/akalia/.gdbinit'
 
-# Install in next image
-sudo apt-get install numactl 
+# Set IP address for ens1f1
+sudo /users/akalia/eRPC/scripts/ethernet_setup/cloudlab_xl170.sh
+
+# To install in next image
+sudo apt-get install numactl calc sloccount nmap
 sudo /proj/ron-PG0/akalia/raft/install.sh
