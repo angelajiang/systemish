@@ -1,3 +1,8 @@
 main
 .gdb_history
 bench
+
+# CMake
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake

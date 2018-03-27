@@ -1,13 +1,16 @@
 #include "foo.h"
 
-Foo::Foo() {
+template <int T>
+Foo<T>::Foo() {
   printf("Foo constructor\n");
 }
 
-Foo::~Foo() {
+template <int T>
+Foo<T>::~Foo() {
   printf("Foo destructor\n");
 }
 
-void Foo::print_2(std::string x) {
-  printf("print_2: %s\n", x.c_str());
+template <int T>
+void Foo<T>::print_2(std::string x) {
+  printf("print_2 %u: %s\n", T, x.c_str());
 }
