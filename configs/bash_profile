@@ -12,6 +12,8 @@ alias moo='ssh akalia@moo.cmcl.cs.cmu.edu'
 alias cmu='ssh akalia@linux.gp.cs.cmu.edu'
 alias zdu='du -mh --max-depth=1 | sort -hr'
 
+export GTEST_BREAK_ON_FAILURE=1
+
 # Avoid duplicates in bash history
 shopt -s histappend
 HISTIGNORE='ls'
