@@ -72,15 +72,7 @@ void test_rdtsc() {
 }
 
 int main() {
-  test_clock_realtime();
-  test_clock_realtime();
-  test_clock_realtime();
-  test_clock_realtime();
-  test_clock_realtime();
-  test_rdtsc();
-  test_rdtsc();
-  test_rdtsc();
-  test_rdtsc();
-  test_rdtsc();
+  for (size_t i = 0; i < 5; i++) test_clock_realtime();
+  for (size_t i = 0; i < 5; i++) test_rdtsc();
   return 0;
 }

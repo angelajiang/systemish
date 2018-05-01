@@ -31,8 +31,11 @@ nmap <silent> <A-Right> :wincmd l<CR>
 nnoremap  <silent>   <tab>  :if &modifiable && !&readonly && &modified <CR> :write<CR> :endif<CR>:bnext<CR>
 nnoremap  <silent> <s-tab>  :if &modifiable && !&readonly && &modified <CR> :write<CR> :endif<CR>:bprevious<CR>
 
-"Quit all vim splits
+" Quit all vim splits
 nmap :qq :qa<Enter>
+
+" Prevent carpal tunnel
+nmap ; :
 
 " Colorscheme
 colorscheme apprentice
