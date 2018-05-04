@@ -36,6 +36,10 @@ nmap :qq :qa<Enter>
 
 " Prevent carpal tunnel
 nmap ; :
+inoremap - _
+inoremap _ -
+cnoremap - _
+cnoremap _ -
 
 " Colorscheme
 colorscheme apprentice
