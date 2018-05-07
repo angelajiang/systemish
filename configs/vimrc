@@ -34,13 +34,6 @@ nnoremap  <silent> <s-tab>  :if &modifiable && !&readonly && &modified <CR> :wri
 " Quit all vim splits
 nmap :qq :qa<Enter>
 
-" Prevent carpal tunnel
-nmap ; :
-inoremap - _
-inoremap _ -
-cnoremap - _
-cnoremap _ -
-
 " Colorscheme
 colorscheme apprentice
 set background=light
@@ -122,3 +115,53 @@ autocmd QuickFixCmdPost    l* nested lwindow
 
 call vundle#end()
 filetype plugin indent on
+
+" Carpal tunnel
+nmap ; :
+inoremap 1 !
+inoremap 2 @
+inoremap 3 #
+inoremap 4 $
+inoremap 5 %
+inoremap 6 ^
+inoremap 7 &
+inoremap 8 *
+inoremap 9 (
+inoremap 0 )
+inoremap - _
+
+inoremap ! 1
+inoremap @ 2
+inoremap # 3
+inoremap $ 4
+inoremap % 5
+inoremap ^ 6
+inoremap & 7
+inoremap * 8
+inoremap ( 9
+inoremap ) 0
+inoremap _ -
+
+cnoremap 1 !
+cnoremap 2 @
+cnoremap 3 #
+cnoremap 4 $
+cnoremap 5 %
+cnoremap 6 ^
+cnoremap 7 &
+cnoremap 8 *
+cnoremap 9 (
+cnoremap 0 )
+cnoremap - _
+
+cnoremap ! 1
+cnoremap @ 2
+cnoremap # 3
+cnoremap $ 4
+cnoremap % 5
+cnoremap ^ 6
+cnoremap & 7
+cnoremap * 8
+cnoremap ( 9
+cnoremap ) 0
+cnoremap _ -
