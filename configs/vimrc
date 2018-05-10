@@ -61,7 +61,7 @@ Plugin 'cmdline-completion'
 
 " Project-specific vimrc
 Plugin 'embear/vim-localvimrc'
-let g:localvimrc_whitelist='/home/akalia/eRPC/drivers/*'
+let g:localvimrc_whitelist='.*'
 
 " DirDiff, only for source code files
 Plugin 'will133/vim-dirdiff'
