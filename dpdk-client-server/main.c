@@ -74,9 +74,6 @@ int main(int argc, char **argv) {
   ret = rte_eal_init(argc, argv);
   CPE(ret < 0, "Invalid EAL arguments\n");
 
-  CPE(rte_pmd_init_all() < 0, "Cannot init pmd\n");  // Not needed in DPDK 1.7
-  CPE(rte_eal_pci_probe() < 0, "Cannot probe PCI\n");
-
   nb_ports = rte_eth_dev_count();
   nb_ports = nb_ports > RTE_MAX_ETHPORTS ? RTE_MAX_ETHPORTS : nb_ports;
   CPE(nb_ports == 0, "No Ethernet ports - bye\n");

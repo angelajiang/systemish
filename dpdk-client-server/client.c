@@ -75,9 +75,9 @@ void run_client(int client_id, int *ht_log,
       ip_hdr->dst_addr = fastrand(&rss_seed);
       ip_hdr->version_ihl = 0x40 | 0x05;
 
-      tx_pkts_burst[i]->pkt.nb_segs = 1;
-      tx_pkts_burst[i]->pkt.pkt_len = 60;
-      tx_pkts_burst[i]->pkt.data_len = 60;
+      tx_pkts_burst[i]->nb_segs = 1;
+      tx_pkts_burst[i]->pkt_len = 60;
+      tx_pkts_burst[i]->data_len = 60;
 
       // Add request, lcore_id, and timestamp
       int *req = (int *)(rte_pktmbuf_mtod(tx_pkts_burst[i], char *) + hdr_size);

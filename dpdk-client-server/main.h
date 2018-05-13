@@ -78,8 +78,6 @@
 
 #define ISSET(a, i) (a & (1 << i))
 #define MAX(a, b) (a > b ? a : b)
-#define htons(n) \
-  (((((unsigned short)(n)&0xFF)) << 8) | (((unsigned short)(n)&0xFF00) >> 8))
 
 #define CPE2(val, msg, error, fault)           \
   if (val) {                                   \
@@ -132,7 +130,7 @@ void run_client(int client_id, int *ht_log,
                 struct rte_mempool **l2fwd_pktmbuf_pool);
 int *shm_alloc(int key, int cap);
 
-inline uint32_t fastrand(uint64_t *seed);
+uint32_t fastrand(uint64_t *seed);
 void micro_sleep(int us, double cycles_to_ns_fac);
 
 void set_mac(uint8_t *mac_ptr, LL mac_addr);

@@ -75,7 +75,6 @@ if v:version > 704 || (v:version == 704 && has('patch143'))
   let g:ycm_confirm_extra_conf=0 " Disable YCM config load prompt
   let g:ycm_complete_in_strings = 1
   let g:ycm_complete_in_comments = 1
-  nnoremap <C-d> :YcmCompleter FixIt<CR>
 endif
 
 " Fuzzy file open
