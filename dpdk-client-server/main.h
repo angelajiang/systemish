@@ -44,8 +44,6 @@
 #include <rte_tailq.h>
 #include <rte_udp.h>
 
-#include "sizes.h"
-
 #define LL long long
 
 // sizeof(rte_mbuf) = 64, RTE_PKTMBUF_HEADROOM = 128
@@ -95,10 +93,6 @@
 #define C_FAC ((double)GHZ_CPS / XIA_R0_CPS)
 #define S_FAC ((double)GHZ_CPS / XIA_R2_CPS)
 
-#define LOG_CAP M_256
-#define LOG_CAP_ M_256_
-#define BASE_HT_LOG_SHM_KEY 1
-
 // All xia hardware specific features need to be prefixed by XIA_
 #define XIA_R0_PORT_MASK 0xc   // xge2,3
 #define XIA_R0_CPS 2270000000  // Client cycles per second
@@ -120,15 +114,12 @@ int *get_active_ports(int portmask);
 int count_active_lcores_on_socket(int socket_id);
 int get_socket_id_from_macaddr(int port_id);
 
-void red_printf(const char *format, ...);
 void print_mac(int port_id, struct ether_addr macaddr);
 void check_all_ports_link_status(uint8_t port_num, int portmask);
 void print_buf(char *A, int n);
 
-void run_server(int *ht_log, struct rte_mempool **l2fwd_pktmbuf_pool);
-void run_client(int client_id, int *ht_log,
-                struct rte_mempool **l2fwd_pktmbuf_pool);
-int *shm_alloc(int key, int cap);
+void run_server(struct rte_mempool **l2fwd_pktmbuf_pool);
+void run_client(int client_id, struct rte_mempool **l2fwd_pktmbuf_pool);
 
 uint32_t fastrand(uint64_t *seed);
 void micro_sleep(int us, double cycles_to_ns_fac);
@@ -136,5 +127,3 @@ void micro_sleep(int us, double cycles_to_ns_fac);
 void set_mac(uint8_t *mac_ptr, LL mac_addr);
 void swap_mac(uint8_t *src_mac_ptr, uint8_t *dst_mac_ptr);
 void print_ether_hdr(struct ether_hdr *eth_hdr);
-
-#define NUM_ACCESSES 0

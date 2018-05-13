@@ -1,38 +1,5 @@
 #include "main.h"
 
-// Like printf, but red. Limited to 1000 characters.
-void red_printf(const char *format, ...) {
-#define RED_LIM 1000
-  va_list args;
-  int i;
-
-  char buf1[RED_LIM], buf2[RED_LIM];
-  memset(buf1, 0, RED_LIM);
-  memset(buf2, 0, RED_LIM);
-
-  va_start(args, format);
-
-  // Marshal the stuff to print in a buffer
-  vsnprintf(buf1, RED_LIM, format, args);
-
-  // Probably a bad check for buffer overflow
-  for (i = RED_LIM - 1; i >= RED_LIM - 50; i--) {
-    assert(buf1[i] == 0);
-  }
-
-  // Add markers for red color and reset color
-  snprintf(buf2, 1000, "\033[31m%s\033[0m", buf1);
-
-  // Probably another bad check for buffer overflow
-  for (i = RED_LIM - 1; i >= RED_LIM - 50; i--) {
-    assert(buf2[i] == 0);
-  }
-
-  printf("%s", buf2);
-
-  va_end(args);
-}
-
 void print_mac(int port_id, struct ether_addr macaddr) {
   printf("\tPort %u, MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n\n",
          (unsigned)port_id, macaddr.addr_bytes[0], macaddr.addr_bytes[1],
@@ -80,24 +47,6 @@ struct rte_mempool *mempool_init(char *name, int socket_id) {
 
   CPE(ret == NULL, "rte_mempool_create failed\n")
   return ret;
-}
-
-int *shm_alloc(int key, int cap) {
-  int shm_flags = IPC_CREAT | 0666 | SHM_HUGETLB;
-  int ht_log_sid = shmget(key, cap * sizeof(int), shm_flags);
-  if (ht_log_sid == -1) {
-    fprintf(stderr, "shmget Error! Failed to shm_alloc\n");
-    int doh = system("cat /sys/devices/system/node/*/meminfo | grep Huge");
-    exit(doh);
-  }
-
-  int *data = (int *)shmat(ht_log_sid, 0, 0);
-
-  int i;
-  for (i = 0; i < cap; i++) {
-    data[i] = rand() & LOG_CAP_;
-  }
-  return data;
 }
 
 inline uint32_t fastrand(uint64_t *seed) {
@@ -208,7 +157,7 @@ int get_socket_id_from_macaddr(int port_id) {
     return 1;
   }
 
-  red_printf("Unexpected mac addr ending: %x\n", lsb);
+  printf("Unexpected mac addr ending: %x\n", lsb);
   exit(-1);
 }
 

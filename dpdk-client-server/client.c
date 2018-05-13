@@ -2,8 +2,7 @@
 #define MAX_CLT_TX_BURST 16
 #define MAX_CLT_RX_BURST 16
 
-void run_client(int client_id, int *ht_log,
-                struct rte_mempool **l2fwd_pktmbuf_pool) {
+void run_client(int client_id, struct rte_mempool **l2fwd_pktmbuf_pool) {
   // [xia-router0 - xge0,1,2,3], [xia-router1 - xge0,1,2,3]
   LL src_mac_arr[2][4] = {
       {0x36d3bd211b00, 0x37d3bd211b00, 0xa8d6a3211b00, 0xa9d6a3211b00},
@@ -26,15 +25,15 @@ void run_client(int client_id, int *ht_log,
 
   int port_id = lcore_to_port[lcore_id];
   if (!ISSET(XIA_R0_PORT_MASK, port_id)) {
-    red_printf("Lcore %d uses disabled port (port %d). Exiting.\n", lcore_id,
-               port_id);
+    printf("Lcore %d uses disabled port (port %d). Exiting.\n", lcore_id,
+           port_id);
     exit(-1);
   }
 
   // This is a valid queue_id because all client ports have 3 queues
   int queue_id = lcore_id % 3;
-  red_printf("Client: lcore: %d, port: %d, queue: %d\n", lcore_id, port_id,
-             queue_id);
+  printf("Client: lcore: %d, port: %d, queue: %d\n", lcore_id, port_id,
+         queue_id);
 
   LL prev_tsc = 0, cur_tsc = 0;
   prev_tsc = rte_rdtsc();
@@ -81,8 +80,8 @@ void run_client(int client_id, int *ht_log,
 
       // Add request, lcore_id, and timestamp
       int *req = (int *)(rte_pktmbuf_mtod(tx_pkts_burst[i], char *) + hdr_size);
-      req[0] = lcore_id;                        // 36 -> 40
-      req[1] = fastrand(&rss_seed) & LOG_CAP_;  // 40 -> 44
+      req[0] = lcore_id;  // 36 -> 40
+      req[1] = lcore_id;  // 40 -> 44
       // Bytes 44 -> 48 are reserved for response (req[2])
 
       LL *tsc =
@@ -112,16 +111,6 @@ void run_client(int client_id, int *ht_log,
         // Verify the server's response
         int *req =
             (int *)(rte_pktmbuf_mtod(rx_pkts_burst[i], char *) + hdr_size);
-        int req_addr = req[1];
-        int resp = req[2];
-
-        int acc_i;  // mem-access iterator
-        for (acc_i = 0; acc_i < NUM_ACCESSES; acc_i++) {
-          req_addr = ht_log[req_addr];
-        }
-        if (req_addr != resp) {
-          nb_fails++;
-        }
 
         // Retrive send-timestamp and lcore from which this pkt was sent
         LL *tsc =

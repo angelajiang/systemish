@@ -46,9 +46,9 @@ struct rte_mempool *l2fwd_pktmbuf_pool[RTE_MAX_LCORE];  // Per lcore mempools
 
 static int l2fwd_launch_one_lcore(__attribute__((unused)) void *dummy) {
   if (is_client) {
-    run_client(client_id, ht_log, l2fwd_pktmbuf_pool);
+    run_client(client_id, l2fwd_pktmbuf_pool);
   } else {
-    run_server(ht_log, l2fwd_pktmbuf_pool);
+    run_server(l2fwd_pktmbuf_pool);
   }
   return 1;
 }
@@ -66,11 +66,6 @@ int main(int argc, char **argv) {
     is_client = 0;
   }
 
-  // Don't move this allocation: must be before EAL's ops
-  red_printf("Setting up log..\n");
-  ht_log = shm_alloc(BASE_HT_LOG_SHM_KEY, LOG_CAP);
-  printf("\tSetting up log done!\n");
-
   ret = rte_eal_init(argc, argv);
   CPE(ret < 0, "Invalid EAL arguments\n");
 
@@ -84,8 +79,8 @@ int main(int argc, char **argv) {
     if (rte_lcore_is_enabled(lcore_id)) {
       char pool_name[20];
       sprintf(pool_name, "pool_%d", lcore_id);
-      red_printf("Lcore %d is enabled. Creating mempool for it on socket %d\n",
-                 lcore_id, LCORE_TO_SOCKET(lcore_id));
+      printf("Lcore %d is enabled. Creating mempool for it on socket %d\n",
+             lcore_id, LCORE_TO_SOCKET(lcore_id));
       l2fwd_pktmbuf_pool[lcore_id] =
           mempool_init(pool_name, LCORE_TO_SOCKET(lcore_id));
       CPE(l2fwd_pktmbuf_pool[lcore_id] == NULL, "Cannot init mbuf pool\n");
@@ -94,7 +89,7 @@ int main(int argc, char **argv) {
 
   /* Initialise each port */
   int portmask = is_client == 1 ? XIA_R0_PORT_MASK : XIA_R2_PORT_MASK;
-  red_printf("\nInitializing ports\n");
+  printf("\nInitializing ports\n");
 
   for (port_id = 0; port_id < nb_ports; port_id++) {
     if (!ISSET(portmask, port_id)) {
@@ -124,8 +119,8 @@ int main(int argc, char **argv) {
       }
 
       if (rte_lcore_is_enabled(my_lcore_id) == 0) {
-        red_printf("\tQueue %d on port %d wants disabled lcore %d! Exiting!\n",
-                   queue_id, port_id, my_lcore_id);
+        printf("\tQueue %d on port %d wants disabled lcore %d! Exiting!\n",
+               queue_id, port_id, my_lcore_id);
         exit(-1);
       }
 
