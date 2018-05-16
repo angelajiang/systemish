@@ -9,5 +9,5 @@ $1 ~ /^[0-9.]/ {
 }
 
 END {
-    if (nr) print sum / nr
+    if (nr) printf("%.3f\n", sum / nr)
 }

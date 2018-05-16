@@ -12,6 +12,6 @@
 END { 
     if (nr > 0) {
         avg = sum / nr
-        print sqrt(sqsum / nr - avg * avg)
+        printf("%.3f\n", sqrt(sqsum / nr - avg * avg))
     }
 }
