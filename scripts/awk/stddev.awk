@@ -3,7 +3,7 @@
 # Compute the standard deviation of numeric values on stdin
 #
 
-/^-?[0-9.]/ {
+/^-?[-0-9.]/ {
     sum += $0
     sqsum += $0 * $0
     ++nr
