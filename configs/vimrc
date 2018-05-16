@@ -32,7 +32,7 @@ nnoremap  <silent>   <tab>  :if &modifiable && !&readonly && &modified <CR> :wri
 nnoremap  <silent> <s-tab>  :if &modifiable && !&readonly && &modified <CR> :write<CR> :endif<CR>:bprevious<CR>
 
 " Quit all vim splits
-nmap :qq :qa<Enter>
+nmap qq :qa<Enter>
 
 " Prevent carpal tunnel
 nmap ; :
@@ -75,7 +75,6 @@ if v:version > 704 || (v:version == 704 && has('patch143'))
   let g:ycm_confirm_extra_conf=0 " Disable YCM config load prompt
   let g:ycm_complete_in_strings = 1
   let g:ycm_complete_in_comments = 1
-  nnoremap <C-d> :YcmCompleter FixIt<CR>
 endif
 
 " Fuzzy file open
@@ -86,6 +85,8 @@ let g:fzf_action = {'enter': 'vsplit'}
 " Fuzzy file open vertical and horizontal splits
 nmap :fsp :FZF<Enter>
 nnoremap <silent> <Leader>s :call fzf#run({'down': '40%', 'sink': 'leftabove split'})<CR>
+noremap cc ciw
+noremap <space> :
 
 " Source a global configuration file if available
 if filereadable("/etc/vim/vimrc.local")
