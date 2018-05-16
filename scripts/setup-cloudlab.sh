@@ -28,9 +28,6 @@ sudo su akalia -c 'cp /proj/ron-PG0/akalia/systemish/configs/vimrc /users/akalia
 sudo su akalia -c 'cp /proj/ron-PG0/akalia/systemish/configs/gitconfig /users/akalia/.gitconfig'
 sudo su akalia -c 'cp /proj/ron-PG0/akalia/systemish/configs/gdbinit /users/akalia/.gdbinit'
 
-# Set IP address for ens1f1
-sudo /users/akalia/eRPC/scripts/ethernet_setup/cloudlab_xl170.sh
-
 # To install in next image
-sudo apt-get install numactl calc sloccount nmap
+sudo apt-get install numactl apcalc sloccount nmap
 sudo /proj/ron-PG0/akalia/raft/install.sh
