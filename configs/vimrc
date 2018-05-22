@@ -17,6 +17,8 @@ set autoindent
 set smartindent
 set nowrap
 set laststatus=2
+set noro  " Open git vimdiffs without readonly
+set nojoinspaces " No double space after period
 
 "Do not search included boost headers during Tab completion
 set include=^\\s*#\\s*include\ \\(<boost/\\)\\@!
@@ -28,11 +30,16 @@ nmap <silent> <C-h> :wincmd h<CR>
 nmap <silent> <C-l> :wincmd l<CR>
 
 " Use tab and shift-tab to move between buffers
-nnoremap  <silent>   <tab>  :if &modifiable && !&readonly && &modified <CR> :write<CR> :endif<CR>:bnext<CR>
-nnoremap  <silent> <s-tab>  :if &modifiable && !&readonly && &modified <CR> :write<CR> :endif<CR>:bprevious<CR>
+nnoremap  <silent> <s-tab>  :if &modifiable && !&readonly && &modified <CR> :write<CR> :endif<CR>:bnext<CR>
 
 " Quit all vim splits
 nmap qq :qa<Enter>
+
+" Disable recording
+map q <Nop>
+
+" Go backwards with e
+map e b
 
 " Prevent carpal tunnel
 nmap ; :
@@ -40,7 +47,7 @@ inoremap - _
 inoremap _ -
 cnoremap - _
 cnoremap _ -
-set noro
+nnoremap <NL> i<CR><ESC>
 
 " Colorscheme
 colorscheme apprentice
@@ -58,6 +65,8 @@ Plugin 'auto-pairs-gentle'
 Plugin 'skwp/greplace.vim'
 Plugin 'kopischke/vim-fetch'
 Plugin 'cmdline-completion'
+Plugin 'easymotion/vim-easymotion'
+let g:EasyMotion_leader_key = '<Space>'
 
 " Project-specific vimrc
 Plugin 'embear/vim-localvimrc'
