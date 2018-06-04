@@ -38,10 +38,7 @@ home_dir = expanduser("~")
 
 flags = [
     '-x',
-    'c',
-    '-DFAULT_INJECTION',
-    '-I' + str(home_dir) + '/systemish',
-    '-isystem', '/proj/ron-PG0/akalia/dpdk-stable-17.11.2/x86_64-native-linuxapp-gcc/include',
+    'c++',
     '-Wall',
     '-Werror',
     '-Wextra',
@@ -49,6 +46,7 @@ flags = [
     '-Wno-unused-function',
     '-Wold-style-cast',
     '-Wsign-conversion',
+    '-std=c++11',
 ]
 
 
