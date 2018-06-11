@@ -47,7 +47,6 @@ inoremap - _
 inoremap _ -
 cnoremap - _
 cnoremap _ -
-nnoremap <NL> i<CR><ESC>
 
 " Colorscheme
 colorscheme apprentice
