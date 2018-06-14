@@ -27,6 +27,7 @@ bind '"\C-l":"\C-r"'
 
 PATH=$PATH:"/usr/local/sbin:/usr/sbin:/sbin"  # I hate Debian
 PATH=$PATH:"$HOME/systemish/scripts"
+PATH=$PATH:"$HOME/systemish/scripts/awk"
 export PATH
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
