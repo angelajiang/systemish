@@ -1,7 +1,5 @@
-source ~/.bash_profile
-
 drop_shm
-for i in `seq 0 68`; do
+for i in `seq 0 47`; do
 	tid=`expr $i + 1`
-	sudo numactl --physcpubind 0-67 --membind 0 ./rand-rate $tid &
+	numactl --cpunodebind 0 --membind 0 ./rand-rate $tid &
 done
