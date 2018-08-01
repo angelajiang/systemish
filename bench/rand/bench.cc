@@ -3,8 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include "../common.h"
+#include "pcg/pcg_random.hpp"
 
-#define ITERS 2000000000
+static constexpr size_t kIters = MB(200);
 
 uint64_t seed = 0xdeadbeef;
 inline uint32_t next_u32() {
@@ -22,31 +24,26 @@ uint32_t xorshf32(void) {
 
 int main() {
   struct timespec start, end;
-  double nanoseconds;
-
-  uint32_t sum = 0;
+  size_t sum = 0;
 
   // Fastrand
   clock_gettime(CLOCK_REALTIME, &start);
-  for (int i = 0; i < ITERS; i++) {
-    sum += next_u32();
-  }
+  for (size_t i = 0; i < kIters; i++) sum += next_u32();
   clock_gettime(CLOCK_REALTIME, &end);
 
-  nanoseconds =
-      (end.tv_sec - start.tv_sec) * 1000000000 + (end.tv_nsec - start.tv_nsec);
-
-  printf("Time per fastrand = %f ns\n", nanoseconds / ITERS);
+  double ns = ns_since(start);
+  printf("Time per fastrand = %f ns, sum = %zu\n", ns / kIters, sum);
 
   // xorshf32
   clock_gettime(CLOCK_REALTIME, &start);
-  for (int i = 0; i < ITERS; i++) {
-    sum += xorshf32();
-  }
-  clock_gettime(CLOCK_REALTIME, &end);
+  for (size_t i = 0; i < kIters; i++) sum += xorshf32();
+  ns = ns_since(start);
+  printf("Time per xorshf32 = %f ns, sum = %zu\n", ns / kIters, sum);
 
-  nanoseconds =
-      (end.tv_sec - start.tv_sec) * 1000000000 + (end.tv_nsec - start.tv_nsec);
-
-  printf("Time per xorshf32 = %f ns\n", nanoseconds / ITERS);
+  // pcg
+  clock_gettime(CLOCK_REALTIME, &start);
+  pcg64_fast pcg(pcg_extras::seed_seq_from<std::random_device>{});
+  for (size_t i = 0; i < kIters; i++) sum += pcg();
+  ns = ns_since(start);
+  printf("Time per pcg64 = %f ns, sum = %zu\n", ns / kIters, sum);
 }

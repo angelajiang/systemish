@@ -1,6 +1,5 @@
 main
 .gdb_history
-bench
 
 # CMake
 CMakeCache.txt
