@@ -73,6 +73,11 @@ function a() {
 	ssh akalianode-$1.RDMA.fawn.apt.emulab.net
 }
 
+function intel() {
+  idx=`expr 2 \* $1`
+  ssh akalia@192.168.18.$idx
+}
+
 function utah() {
  ssh akalianode-$1.RDMA.ron-PG0.utah.cloudlab.us
 }
@@ -171,7 +176,7 @@ export MLX_CQ_ALLOC_TYPE="HUGE"
 sf() {
   if [ "$#" -lt 1 ]; then echo "sf: Supply string to search for!"; return 1; fi
   printf -v search "%q" "$*"
-  include="cpp,c,cc,h,sh"
+  include="cpp,c,cc,h,sh,tex"
   exclude=".config,.git"
   rg_command='rg --column --line-number --no-heading --fixed-strings --ignore-case --no-ignore --hidden --follow --color "always" -g "*.{'$include'}" -g "!{'$exclude'}/*"'
   files=`eval $rg_command $search | fzf --ansi --multi --reverse | awk -F ':' '{print $1":"$2":"$3}'`
