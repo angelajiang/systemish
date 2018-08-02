@@ -1,20 +1,25 @@
 #include <assert.h>
 #include "udp_client.h"
 
-static std::string dest_hostname = "localhost";
-static constexpr uint16_t dest_port = 41851;
-static constexpr size_t msg_len = 10;
-static_assert(msg_len > 1, "");  // For null-termination
-static constexpr size_t num_pkts = 1000;
+static std::string dest_hostname = "192.168.18.2";
+static constexpr uint16_t kDstPort = 41851;
+static constexpr size_t kMsgLen = 10;
+static_assert(kMsgLen > 1, "");  // For null-termination
+static constexpr size_t kNumPkts = 1000;
+
+struct msg_t {
+  char buf[kMsgLen];
+};
 
 int main() {
-  UDPClient u;
-  char msg[msg_len];
-  for (auto &c : msg) c = 'A';
-  msg[msg_len - 1] = 0;
+  erpc::UDPClient<msg_t> u;
 
-  for (size_t i = 0; i < num_pkts; i++) {
-    ssize_t ret = u.send(dest_hostname, dest_port, msg, msg_len);
-    assert(ret == static_cast<ssize_t>(msg_len));
+  msg_t msg;
+  for (auto &c : msg.buf) c = 'A';
+  msg.buf[kMsgLen - 1] = 0;
+
+  for (size_t i = 0; i < kNumPkts; i++) {
+    ssize_t ret = u.send(dest_hostname, kDstPort, msg);
+    assert(ret == static_cast<ssize_t>(kMsgLen));
   }
 }

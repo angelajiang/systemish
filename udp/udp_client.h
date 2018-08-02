@@ -1,13 +1,18 @@
-#include <errno.h>
+#pragma once
+
 #include <netdb.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <map>
 #include <stdexcept>
+#include <vector>
+
+namespace erpc {
 
 /// Basic UDP client class that supports sending messages and caches remote
 /// addrinfo mappings
+template <class T>
 class UDPClient {
  public:
   UDPClient() {
@@ -25,10 +30,12 @@ class UDPClient {
   }
 
   ssize_t send(const std::string rem_hostname, uint16_t rem_port,
-               const char *msg, size_t size) {
+               const T &msg) {
+    std::string remote_uri = rem_hostname + ":" + std::to_string(rem_port);
     struct addrinfo *rem_addrinfo = nullptr;
-    if (addrinfo_map.count(rem_hostname) != 0) {
-      rem_addrinfo = addrinfo_map.at(rem_hostname);
+
+    if (addrinfo_map.count(remote_uri) != 0) {
+      rem_addrinfo = addrinfo_map.at(remote_uri);
     } else {
       char port_str[16];
       snprintf(port_str, sizeof(port_str), "%u", rem_port);
@@ -42,23 +49,38 @@ class UDPClient {
       int r =
           getaddrinfo(rem_hostname.c_str(), port_str, &hints, &rem_addrinfo);
       if (r != 0 || rem_addrinfo == nullptr) {
-        throw std::runtime_error("UDPClient: Failed to resolve remote.");
+        char issue_msg[1000];
+        sprintf(issue_msg, "Failed to resolve %s. getaddrinfo error = %s.",
+                remote_uri.c_str(), gai_strerror(r));
+        throw std::runtime_error(issue_msg);
       }
 
-      addrinfo_map[rem_hostname] = rem_addrinfo;
+      addrinfo_map[remote_uri] = rem_addrinfo;
     }
 
-    ssize_t ret = sendto(sock_fd, msg, size, 0, rem_addrinfo->ai_addr,
+    ssize_t ret = sendto(sock_fd, &msg, sizeof(T), 0, rem_addrinfo->ai_addr,
                          rem_addrinfo->ai_addrlen);
-    if (ret != static_cast<ssize_t>(size)) {
+    if (ret != static_cast<ssize_t>(sizeof(T))) {
       throw std::runtime_error("sendto() failed. errno = " +
                                std::string(strerror(errno)));
     }
 
+    if (enable_recording_flag) sent_vec.push_back(msg);
     return ret;
   }
 
+  /// Maintain a all packets sent by this client
+  void enable_recording() { enable_recording_flag = true; }
+
  private:
   int sock_fd = -1;
+
+  /// A cache mapping hostname:udp_port to addrinfo
   std::map<std::string, struct addrinfo *> addrinfo_map;
+
+  /// The list of all packets sent, maintained if recording is enabled
+  std::vector<T> sent_vec;
+  bool enable_recording_flag = false;  ///< Flag to enable recording for testing
 };
+
+}  // namespace erpc

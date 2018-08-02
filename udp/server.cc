@@ -1,20 +1,25 @@
 #include "udp_server.h"
 
-static constexpr uint16_t server_udp_port = 31850;
-static constexpr size_t max_msg_size = 1500;
-static constexpr size_t timeout_ms = 100;
+static constexpr uint16_t kSrvUdpPort = 31850;
+static constexpr size_t kTimeoutMs = 1000;
+
+static constexpr size_t kMsgLen = 10;
+static_assert(kMsgLen > 1, "");  // For null-termination
+struct msg_t {
+  char buf[kMsgLen];
+};
 
 int main() {
-  UDPServer u(server_udp_port, timeout_ms, 1024 * 1024 * 4);
-  char msg[max_msg_size];
+  erpc::UDPServer<msg_t> u(kSrvUdpPort, kTimeoutMs, 1024 * 1024 * 4);
 
   size_t num_rx = 0;
   while (true) {
-    int ret = u.recv_blocking(msg, max_msg_size);
+    msg_t msg;
+    int ret = u.recv_blocking(msg);
     if (ret < 0) {
       printf("%zu: No RX.\n", num_rx++);
     } else {
-      printf("%zu: %s\n", num_rx++, msg);
+      printf("%zu: %s\n", num_rx++, msg.buf);
     }
   }
 }

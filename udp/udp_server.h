@@ -1,9 +1,14 @@
+#pragma once
+
 #include <netdb.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <stdexcept>
 
+namespace erpc {
+
 /// Basic UDP server class that supports receiving messages
+template <class T>
 class UDPServer {
  public:
   UDPServer(uint16_t port, size_t timeout_ms, size_t rx_buffer_size = 0)
@@ -40,7 +45,10 @@ class UDPServer {
 
     int r = bind(sock_fd, reinterpret_cast<struct sockaddr *>(&serveraddr),
                  sizeof(serveraddr));
-    if (r != 0) throw std::runtime_error("UDPServer: Failed to bind socket.");
+    if (r != 0) {
+      throw std::runtime_error("UDPServer: Failed to bind socket to port " +
+                               std::to_string(port));
+    }
   }
 
   UDPServer() {}
@@ -50,8 +58,8 @@ class UDPServer {
     if (sock_fd != -1) close(sock_fd);
   }
 
-  ssize_t recv_blocking(char *msg, size_t max_size) {
-    return recv(sock_fd, msg, max_size, 0);
+  ssize_t recv_blocking(T &msg) {
+    return recv(sock_fd, static_cast<void *>(&msg), sizeof(T), 0);
   }
 
  private:
@@ -59,3 +67,5 @@ class UDPServer {
   size_t timeout_ms;
   int sock_fd = -1;
 };
+
+}  // namespace erpc
