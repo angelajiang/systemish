@@ -92,6 +92,7 @@ let g:fzf_action = {'enter': 'vsplit'}
 
 " Fuzzy file open vertical and horizontal splits
 nmap :fsp :FZF<Enter>
+nmap :aaa :FZF<Enter>
 nnoremap <silent> <Leader>s :call fzf#run({'down': '40%', 'sink': 'leftabove split'})<CR>
 noremap cc ciw
 noremap <space> :
@@ -127,6 +128,9 @@ endfunction
 " seem to happen.
 autocmd QuickFixCmdPost [^l]* nested cwindow
 autocmd QuickFixCmdPost    l* nested lwindow
+
+" Don't go to last edit location
+:au! fedora BufReadPost
 
 "set tags=./tags,tags;
 
