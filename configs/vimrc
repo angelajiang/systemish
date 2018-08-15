@@ -130,7 +130,9 @@ autocmd QuickFixCmdPost [^l]* nested cwindow
 autocmd QuickFixCmdPost    l* nested lwindow
 
 " Don't go to last edit location
-:au! fedora BufReadPost
+if exists('#fedora')
+  autocmd! fedora BufReadPost *
+endif
 
 "set tags=./tags,tags;
 
