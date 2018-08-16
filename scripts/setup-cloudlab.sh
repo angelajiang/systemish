@@ -13,6 +13,7 @@ sudo su akalia -c 'ln -s /proj/ron-PG0/akalia/systemish /users/akalia/systemish'
 sudo su akalia -c 'ln -s /proj/ron-PG0/akalia/eRPC /users/akalia/eRPC'
 sudo su akalia -c 'ln -s /proj/ron-PG0/akalia/raft /users/akalia/raft'
 sudo su akalia -c 'ln -s /proj/ron-PG0/akalia/rdma_bench /users/akalia/rdma_bench'
+sudo su akalia -c 'ln -s /proj/ron-PG0/akalia/dpdk /users/akalia/dpdk'
 
 # Symlink large configs
 sudo su akalia -c 'ln -s /proj/ron-PG0/akalia/vim /users/akalia/.vim'
@@ -28,6 +29,13 @@ sudo su akalia -c 'cp /proj/ron-PG0/akalia/systemish/configs/vimrc /users/akalia
 sudo su akalia -c 'cp /proj/ron-PG0/akalia/systemish/configs/gitconfig /users/akalia/.gitconfig'
 sudo su akalia -c 'cp /proj/ron-PG0/akalia/systemish/configs/gdbinit /users/akalia/.gdbinit'
 
+# Copy ssh keys
+sudo su akalia -c 'cp /proj/ron-PG0/akalia/ssh_keys/* /users/akalia/.ssh/'
+sudo su akalia -c 'cat /users/akalia/.ssh/id_rsa.pub >> /users/akalia/.ssh/authorized_keys'
+
 # To install in next image
-sudo apt-get install numactl apcalc sloccount nmap
+sudo apt -y install numactl apcalc sloccount nmap
 sudo /proj/ron-PG0/akalia/raft/install.sh
+
+sudo add-apt-repository -y ppa:ahasenack/nvdimm-update
+sudo apt -y install libpmem-dev
