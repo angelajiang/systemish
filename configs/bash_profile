@@ -60,6 +60,9 @@ function drop_shm()
             sudo ipcrm -M $i 2>/dev/null
         fi
     done
+
+    echo "Cleanup up /dev/hugepages/"
+    sudo rm /dev/hugepages/*
 }
 
 alias youtubemp3='youtube-dl --extract-audio --audio-format mp3 --audio-quality 0'

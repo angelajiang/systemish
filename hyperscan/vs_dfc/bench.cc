@@ -12,7 +12,7 @@
 #include "utils/timer.h"
 
 static constexpr size_t kNumPkts = 30000;
-static constexpr size_t kPktSize = 1024;
+static constexpr size_t kPktSize = 8192;
 
 static constexpr bool kLoadSnortPatterns = true;  // Else load test patterns
 static constexpr bool kUseRandomPackets = true;   // Else use packets.txt
@@ -23,6 +23,7 @@ struct byte_arr_t {
   size_t num_bytes;      // Number of non-zero bytes
   unsigned char *bytes;  // Null-terminated byte array
 
+  byte_arr_t() : num_bytes(0), bytes(nullptr) {}
   byte_arr_t(size_t num_bytes, unsigned char *bytes)
       : num_bytes(num_bytes), bytes(bytes) {}
 
@@ -69,7 +70,6 @@ void evaluate_hyperscan() {
   char **virus_arr = new char *[virus_vec.size()];
   for (size_t i = 0; i < virus_vec.size(); i++) {
     ids[i] = i;
-
     size_t hexlen = virus_vec[i].num_bytes * 4;
     char *hexbuf = new char[hexlen + 1];
 
@@ -168,7 +168,7 @@ void evaluate_dfc() {
 int main() {
   freq_ghz = measure_rdtsc_freq();
   printf("Kicking up TurboBoost. freq_ghz = %.2f\n", freq_ghz);
-  // nano_sleep(2000000000, freq_ghz);
+  nano_sleep(2000000000, freq_ghz);
   printf("Starting work!\n");
 
   // Get the list of viruses
@@ -185,25 +185,29 @@ int main() {
   printf("Number of virus = %zu:\n", virus_vec.size());
   for (auto &byte_arr : virus_vec) byte_arr.print();
 
-  // Generate random packets
-  /*pkt_vec.resize(kNumPkts);
-  for (size_t i = 0; i < kNumPkts; i++) {
-    pkt_vec[i] = new char[kPktSize];
-    for (size_t j = 0; j < kPktSize; j++) {
-      pkt_vec[i][j] = static_cast<char>(rand() % 128);
+  if (kUseRandomPackets) {
+    pkt_vec.resize(kNumPkts);
+    for (size_t i = 0; i < kNumPkts; i++) {
+      pkt_vec[i].num_bytes = kPktSize;
+      pkt_vec[i].bytes = new unsigned char[kPktSize];
+      for (size_t j = 0; j < kPktSize; j++) {
+        pkt_vec[i].bytes[j] = static_cast<unsigned char>(rand() % 256);
+      }
     }
-  }*/
-
-  std::ifstream pkt_file("packets.txt");
-  while (true) {
-    std::string pkt;
-    std::getline(pkt_file, pkt);
-    if (pkt.empty()) break;
-    pkt_vec.push_back(byte_arr_t::gen_from_string(pkt));
+  } else {
+    std::ifstream pkt_file("packets.txt");
+    while (true) {
+      std::string pkt;
+      std::getline(pkt_file, pkt);
+      if (pkt.empty()) break;
+      pkt_vec.push_back(byte_arr_t::gen_from_string(pkt));
+    }
   }
 
   printf("Number of packets = %zu:\n", pkt_vec.size());
-  for (auto &byte_arr : pkt_vec) byte_arr.print();
+  if (!kUseRandomPackets) {
+    for (auto &byte_arr : pkt_vec) byte_arr.print();
+  }
 
   evaluate_hyperscan();
   evaluate_dfc();
