@@ -2,7 +2,7 @@
 #include "udp_client.h"
 
 static std::string dest_hostname = "192.168.18.2";
-static constexpr uint16_t kDstPort = 41851;
+static constexpr uint16_t kDstPort = 31850;
 static constexpr size_t kMsgLen = 10;
 static_assert(kMsgLen > 1, "");  // For null-termination
 static constexpr size_t kNumPkts = 1000;

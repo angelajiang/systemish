@@ -8,9 +8,9 @@
 
 #include "../common.h"
 
-static constexpr size_t kMaxValue = 100000;
+static constexpr size_t kMaxValue = 1000000;
 static constexpr size_t kMinValue = 1;
-static constexpr size_t kDecimalPlaces = 1;
+static constexpr size_t kSignificantDigits = 2;
 static constexpr size_t kIterations = MB(100);
 
 int main() {
@@ -19,10 +19,13 @@ int main() {
   struct hdr_histogram* histogram;
   result =
       hdr_init(static_cast<int64_t>(kMinValue), static_cast<int64_t>(kMaxValue),
-               kDecimalPlaces, &histogram);
+               kSignificantDigits, &histogram);
   assert(result == 0);
 
   printf("bytes used by histogram = %zu\n", hdr_get_memory_size(histogram));
+  printf("%zu\n", static_cast<size_t>(hdr_value_at_percentile(histogram, 70)));
+  printf("%zu\n",
+         static_cast<size_t>(hdr_value_at_percentile(histogram, 99.999)));
 
   struct timespec start;
   clock_gettime(CLOCK_REALTIME, &start);

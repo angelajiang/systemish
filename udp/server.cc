@@ -1,7 +1,7 @@
 #include "udp_server.h"
 
 static constexpr uint16_t kSrvUdpPort = 31850;
-static constexpr size_t kTimeoutMs = 1000;
+static constexpr size_t kTimeoutMs = 100;
 
 static constexpr size_t kMsgLen = 10;
 static_assert(kMsgLen > 1, "");  // For null-termination
