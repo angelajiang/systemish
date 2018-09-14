@@ -2,6 +2,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <infiniband/verbs.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -9,14 +11,14 @@
 #define MAP_SHARED_VALIDATE 0x03
 
 static constexpr size_t kDevdaxFileSize = 2ull * 1024 * 1024;
-static constexpr const char *kDevDaxFileName = "/dev/dax12.0";
+static constexpr const char *kDevDaxFileName = "/dev/dax0.0";
 
 int main() {
   int fd = open(kDevDaxFileName, O_RDWR);
   assert(fd >= 0);
 
   void *buf = mmap(nullptr, kDevdaxFileSize, PROT_READ | PROT_WRITE,
-                   MAP_SHARED | MAP_SYNC, fd, 0);
+                   MAP_SHARED_VALIDATE | MAP_SYNC, fd, 0);
   if (buf == MAP_FAILED) {
     fprintf(stderr, "mmap failed with error %s\n", strerror(errno));
     exit(-1);
@@ -39,6 +41,8 @@ int main() {
   if (mr == nullptr) {
     fprintf(stderr, "ibv_reg_mr failed with error %s\n", strerror(errno));
     exit(-1);
+  } else {
+    printf("ibv_reg_mr succeeded\n");
   }
   assert(mr != nullptr);
 
