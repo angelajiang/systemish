@@ -5,6 +5,9 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#define MAP_SYNC 0x80000
+#define MAP_SHARED_VALIDATE 0x03
+
 static constexpr size_t kDevdaxFileSize = 2ull * 1024 * 1024;
 static constexpr const char *kDevDaxFileName = "/dev/dax12.0";
 
@@ -12,8 +15,8 @@ int main() {
   int fd = open(kDevDaxFileName, O_RDWR);
   assert(fd >= 0);
 
-  void *buf =
-      mmap(nullptr, kDevdaxFileSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  void *buf = mmap(nullptr, kDevdaxFileSize, PROT_READ | PROT_WRITE,
+                   MAP_SHARED_VALIDATE | MAP_SYNC, fd, 0);
   assert(buf != MAP_FAILED);
 
   int num_devices = 0;
