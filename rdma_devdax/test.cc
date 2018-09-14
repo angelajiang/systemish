@@ -16,7 +16,7 @@ int main() {
   assert(fd >= 0);
 
   void *buf = mmap(nullptr, kDevdaxFileSize, PROT_READ | PROT_WRITE,
-                   MAP_SHARED_VALIDATE | MAP_SYNC, fd, 0);
+                   MAP_SHARED | MAP_SYNC, fd, 0);
   if (buf == MAP_FAILED) {
     fprintf(stderr, "mmap failed with error %s\n", strerror(errno));
     exit(-1);
@@ -36,6 +36,10 @@ int main() {
                  IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_REMOTE_ATOMIC;
 
   struct ibv_mr *mr = ibv_reg_mr(pd, buf, kDevdaxFileSize, ib_flags);
+  if (mr == nullptr) {
+    fprintf(stderr, "ibv_reg_mr failed with error %s\n", strerror(errno));
+    exit(-1);
+  }
   assert(mr != nullptr);
 
   // Cleanup devdax buffer
