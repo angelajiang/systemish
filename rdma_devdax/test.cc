@@ -17,7 +17,10 @@ int main() {
 
   void *buf = mmap(nullptr, kDevdaxFileSize, PROT_READ | PROT_WRITE,
                    MAP_SHARED_VALIDATE | MAP_SYNC, fd, 0);
-  assert(buf != MAP_FAILED);
+  if (buf == MAP_FAILED) {
+    fprintf(stderr, "mmap failed with error %s\n", strerror(errno));
+    exit(-1);
+  }
 
   int num_devices = 0;
   struct ibv_device **dev_list = ibv_get_device_list(&num_devices);
