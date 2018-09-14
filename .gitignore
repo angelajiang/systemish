@@ -1,4 +1,6 @@
 main
+bench
+test
 .gdb_history
 
 # CMake
