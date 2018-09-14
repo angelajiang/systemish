@@ -5,10 +5,11 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-static constexpr size_t kDevdaxFileSize = 2ull * 1024 * 1024 * 1024;
+static constexpr size_t kDevdaxFileSize = 2ull * 1024 * 1024;
+static constexpr const char *kDevDaxFileName = "/dev/dax12.0";
 
 int main() {
-  int fd = open("/dev/dax12.0", O_RDWR);
+  int fd = open(kDevDaxFileName, O_RDWR);
   assert(fd >= 0);
 
   void *buf =
