@@ -177,7 +177,7 @@ export MLX_CQ_ALLOC_TYPE="HUGE"
 sf() {
   if [ "$#" -lt 1 ]; then echo "sf: Supply string to search for!"; return 1; fi
   printf -v search "%q" "$*"
-  include="cpp,c,cc,h,sh,tex"
+  include="cpp,c,cc,h,sh,tex,hpp"
   exclude=".config,.git"
   rg_command='rg --column --line-number --no-heading --fixed-strings --ignore-case --no-ignore --hidden --follow --color "always" -g "*.{'$include'}" -g "!{'$exclude'}/*"'
   files=`eval $rg_command $search | fzf --ansi --multi --reverse | awk -F ':' '{print $1":"$2":"$3}'`
@@ -185,6 +185,10 @@ sf() {
   [[ -n "$files" ]] && ${EDITOR:-vim} $files
 }
 
+# Allow pmdk to use AVX512
+export PMEM_AVX512F=1
+
+# Default eRPC application
 export autorun_app="small_rpc_tput"
 #export autorun_app="consensus"
 #export autorun_app="large_rpc_tput"
