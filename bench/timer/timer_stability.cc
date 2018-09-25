@@ -11,23 +11,21 @@
 #include <unistd.h>
 
 #define NUM_ITERS (5) /* Total number of iterations */
-#define RDTSC_GHZ (3.4)
+#define RDTSC_GHZ (2.19)
 
-static inline long long hrd_get_cycles() {
-  unsigned low, high;
-  unsigned long long val;
-  asm volatile("rdtsc" : "=a"(low), "=d"(high));
-  val = high;
-  val = (val << 32) | low;
-  return val;
+static inline size_t rdtsc() {
+  uint64_t rax;
+  uint64_t rdx;
+  asm volatile("rdtsc" : "=a"(rax), "=d"(rdx));
+  return static_cast<size_t>((rdx << 32) | rax);
 }
 
 void test() {
   struct timespec start, end;
   clock_gettime(CLOCK_REALTIME, &start);
-  uint64_t rdtsc_start = hrd_get_cycles();
+  uint64_t rdtsc_start = rdtsc();
 
-  /* Do some intense computation, followed by sleep -- multiple times */
+  // Do some intense computation, followed by sleep -- multiple times
   for (int loop = 0; loop < 2; loop++) {
     printf("Loop iter %d. Triggering turboboost.\n", loop);
     // Trigger turbo boost
@@ -43,7 +41,7 @@ void test() {
   clock_gettime(CLOCK_REALTIME, &end);
   size_t clock_ns =
       (end.tv_sec - start.tv_sec) * 1000000000 + (end.tv_nsec - start.tv_nsec);
-  size_t rdtsc_ns = (size_t)((hrd_get_cycles() - rdtsc_start) / RDTSC_GHZ);
+  size_t rdtsc_ns = (rdtsc() - rdtsc_start) / RDTSC_GHZ;
   size_t delta_ns =
       (clock_ns > rdtsc_ns) ? (clock_ns - rdtsc_ns) : (rdtsc_ns - clock_ns);
 
