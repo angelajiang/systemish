@@ -153,7 +153,6 @@ class HugeAlloc {
   }
 
   ~HugeAlloc() {
-    // Deregister and delete the created SHM regions
     for (shm_region_t &shm_region : shm_list) {
       delete_shm(shm_region.shm_key, shm_region.buf);
     }
@@ -169,7 +168,6 @@ class HugeAlloc {
    * used.
    *
    * @param size The minimum size of the allocated memory
-   * @param do_register True iff the hugepages should be registered
    *
    * @return The allocated hugepage-backed Buffer. buffer.buf is nullptr if we
    * ran out of memory. buffer.class_size is set to SIZE_MAX to indicate that
@@ -397,13 +395,12 @@ class HugeAlloc {
 
   /**
    * @brief Try to reserve \p size (rounded to 2MB) bytes as huge pages by
-   * adding hugepage-backed Buffers to freelists. The allocated hugepages are
-   * registered with the NIC.
+   * adding hugepage-backed Buffers to freelists.
    *
    * @return True if the allocation succeeds. False if the allocation fails
    * because no more hugepages are available.
    *
-   * @throw runtime_error if allocation is \a catastrophic (i.e., it fails
+   * @throw runtime_error if allocation is catastrophic (i.e., it fails
    * due to reasons other than out-of-memory).
    */
   bool reserve_hugepages(size_t size) {
