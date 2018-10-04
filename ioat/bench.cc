@@ -33,18 +33,19 @@
 
 #include "spdk/stdinc.h"
 
+#include <string>
 #include "spdk/env.h"
 #include "spdk/ioat.h"
 #include "spdk/queue.h"
 #include "spdk/string.h"
 
 struct user_config {
-  int xfer_size_bytes;
-  int queue_depth;
-  int time_in_sec;
+  size_t xfer_size_bytes;
+  size_t queue_depth;
+  size_t time_in_sec;
   bool verify;
-  char *core_mask;
-  int ioat_chan_num;
+  std::string core_mask;
+  size_t ioat_chan_num;
 };
 
 struct ioat_device {
@@ -81,9 +82,9 @@ struct ioat_task {
   void *dst;
 };
 
-static struct worker_thread *g_workers = NULL;
-static int g_num_workers = 0;
-static int g_ioat_chan_num = 0;
+static struct worker_thread *g_workers = nullptr;
+static size_t g_num_workers = 0;
+static size_t g_ioat_chan_num = 0;
 
 static void submit_single_xfer(struct ioat_chan_entry *ioat_chan_entry,
                                struct ioat_task *ioat_task, void *dst,
@@ -100,11 +101,11 @@ static void construct_user_config(struct user_config *self) {
 
 static void dump_user_config(struct user_config *self) {
   printf("User configuration:\n");
-  printf("Number of channels:    %u\n", self->ioat_chan_num);
-  printf("Transfer size:  %u bytes\n", self->xfer_size_bytes);
-  printf("Queue depth:    %u\n", self->queue_depth);
-  printf("Run time:       %u seconds\n", self->time_in_sec);
-  printf("Core mask:      %s\n", self->core_mask);
+  printf("Number of channels:    %zu\n", self->ioat_chan_num);
+  printf("Transfer size:  %zu bytes\n", self->xfer_size_bytes);
+  printf("Queue depth:    %zu\n", self->queue_depth);
+  printf("Run time:       %zu seconds\n", self->time_in_sec);
+  printf("Core mask:      %s\n", self->core_mask.c_str());
   printf("Verify:         %s\n\n", self->verify ? "Yes" : "No");
 }
 
@@ -122,7 +123,7 @@ static void ioat_exit(void) {
 }
 
 static void ioat_done(void *cb_arg) {
-  struct ioat_task *ioat_task = (struct ioat_task *)cb_arg;
+  auto *ioat_task = reinterpret_cast<struct ioat_task *>(cb_arg);
   struct ioat_chan_entry *ioat_chan_entry = ioat_task->ioat_chan_entry;
 
   if (g_user_config.verify &&
@@ -148,12 +149,12 @@ static int register_workers(void) {
   uint32_t i;
   struct worker_thread *worker;
 
-  g_workers = NULL;
+  g_workers = nullptr;
   g_num_workers = 0;
 
   SPDK_ENV_FOREACH_CORE(i) {
-    worker = calloc(1, sizeof(*worker));
-    if (worker == NULL) {
+    worker = reinterpret_cast<worker_thread *>(calloc(1, sizeof(*worker)));
+    if (worker == nullptr) {
       fprintf(stderr, "Unable to allocate worker\n");
       return -1;
     }
@@ -187,7 +188,7 @@ static void unregister_workers(void) {
   }
 }
 
-static bool probe_cb(void *cb_ctx, struct spdk_pci_device *pci_dev) {
+static bool probe_cb(void *, struct spdk_pci_device *pci_dev) {
   printf(
       " Found matching device at %04x:%02x:%02x.%x "
       "vendor:0x%04x device:0x%04x\n",
@@ -199,7 +200,7 @@ static bool probe_cb(void *cb_ctx, struct spdk_pci_device *pci_dev) {
   return true;
 }
 
-static void attach_cb(void *cb_ctx, struct spdk_pci_device *pci_dev,
+static void attach_cb(void *, struct spdk_pci_device *,
                       struct spdk_ioat_chan *ioat) {
   struct ioat_device *dev;
 
@@ -207,8 +208,9 @@ static void attach_cb(void *cb_ctx, struct spdk_pci_device *pci_dev,
     return;
   }
 
-  dev = spdk_dma_zmalloc(sizeof(*dev), 0, NULL);
-  if (dev == NULL) {
+  dev = reinterpret_cast<struct ioat_device *>(
+      spdk_dma_zmalloc(sizeof(*dev), 0, nullptr));
+  if (dev == nullptr) {
     printf("Failed to allocate device struct\n");
     return;
   }
@@ -221,7 +223,7 @@ static void attach_cb(void *cb_ctx, struct spdk_pci_device *pci_dev,
 static int ioat_init(void) {
   TAILQ_INIT(&g_devices);
 
-  if (spdk_ioat_probe(NULL, probe_cb, attach_cb) != 0) {
+  if (spdk_ioat_probe(nullptr, probe_cb, attach_cb) != 0) {
     fprintf(stderr, "ioat_probe() failed\n");
     return 1;
   }
@@ -273,7 +275,7 @@ static int parse_args(int argc, char **argv) {
     }
   }
   if (!g_user_config.xfer_size_bytes || !g_user_config.queue_depth ||
-      !g_user_config.time_in_sec || !g_user_config.core_mask ||
+      !g_user_config.time_in_sec || g_user_config.core_mask.size() == 0 ||
       !g_user_config.ioat_chan_num) {
     usage(argv[0]);
     return 1;
@@ -304,12 +306,13 @@ static void submit_single_xfer(struct ioat_chan_entry *ioat_chan_entry,
 static void submit_xfers(struct ioat_chan_entry *ioat_chan_entry,
                          uint64_t queue_depth) {
   while (queue_depth-- > 0) {
-    void *src = NULL, *dst = NULL;
-    struct ioat_task *ioat_task = NULL;
+    void *src = nullptr, *dst = nullptr;
+    struct ioat_task *ioat_task = nullptr;
 
     src = spdk_mempool_get(ioat_chan_entry->data_pool);
     dst = spdk_mempool_get(ioat_chan_entry->data_pool);
-    ioat_task = spdk_mempool_get(ioat_chan_entry->task_pool);
+    ioat_task = reinterpret_cast<struct ioat_task *>(
+        spdk_mempool_get(ioat_chan_entry->task_pool));
 
     submit_single_xfer(ioat_chan_entry, ioat_task, dst, src);
   }
@@ -317,15 +320,15 @@ static void submit_xfers(struct ioat_chan_entry *ioat_chan_entry,
 
 static int work_fn(void *arg) {
   uint64_t tsc_end;
-  struct worker_thread *worker = (struct worker_thread *)arg;
-  struct ioat_chan_entry *t = NULL;
+  auto *worker = reinterpret_cast<struct worker_thread *>(arg);
+  struct ioat_chan_entry *t = nullptr;
 
   printf("Starting thread on core %u\n", worker->core);
 
   tsc_end = spdk_get_ticks() + g_user_config.time_in_sec * spdk_get_ticks_hz();
 
   t = worker->ctx;
-  while (t != NULL) {
+  while (t != nullptr) {
     // begin to submit transfers
     submit_xfers(t, g_user_config.queue_depth);
     t = t->next;
@@ -333,7 +336,7 @@ static int work_fn(void *arg) {
 
   while (1) {
     t = worker->ctx;
-    while (t != NULL) {
+    while (t != nullptr) {
       spdk_ioat_process_events(t->chan);
       t = t->next;
     }
@@ -344,7 +347,7 @@ static int work_fn(void *arg) {
   }
 
   t = worker->ctx;
-  while (t != NULL) {
+  while (t != nullptr) {
     // begin to drain io
     t->is_draining = true;
     drain_io(t);
@@ -359,7 +362,7 @@ static int init(void) {
 
   spdk_env_opts_init(&opts);
   opts.name = "perf";
-  opts.core_mask = g_user_config.core_mask;
+  opts.core_mask = g_user_config.core_mask.c_str();
   if (spdk_env_init(&opts) < 0) {
     return -1;
   }
@@ -375,7 +378,7 @@ static int dump_result(void) {
 
   printf("Channel_ID     Core     Transfers     Bandwidth     Failed\n");
   printf("-----------------------------------------------------------\n");
-  while (worker != NULL) {
+  while (worker != nullptr) {
     struct ioat_chan_entry *t = worker->ctx;
     while (t) {
       uint64_t xfer_per_sec = t->xfer_completed / g_user_config.time_in_sec;
@@ -410,8 +413,8 @@ static int dump_result(void) {
 static struct spdk_ioat_chan *get_next_chan(void) {
   struct spdk_ioat_chan *chan;
 
-  if (g_next_device == NULL) {
-    return NULL;
+  if (g_next_device == nullptr) {
+    return nullptr;
   }
 
   chan = g_next_device->ioat;
@@ -428,8 +431,9 @@ static int associate_workers_with_chan(void) {
   char buf_pool_name[30], task_pool_name[30];
   int i = 0;
 
-  while (chan != NULL) {
-    t = calloc(1, sizeof(struct ioat_chan_entry));
+  while (chan != nullptr) {
+    t = reinterpret_cast<struct ioat_chan_entry *>(
+        calloc(1, sizeof(struct ioat_chan_entry)));
     if (!t) {
       return -1;
     }
@@ -456,7 +460,7 @@ static int associate_workers_with_chan(void) {
     worker->ctx = t;
 
     worker = worker->next;
-    if (worker == NULL) {
+    if (worker == nullptr) {
       worker = g_workers;
     }
 
@@ -498,8 +502,8 @@ int main(int argc, char **argv) {
 
   if (g_user_config.ioat_chan_num > g_ioat_chan_num) {
     printf(
-        "%d channels are requested, but only %d are found,"
-        "so only test %d channels\n",
+        "%zu channels are requested, but only %zu are found,"
+        "so only test %zu channels\n",
         g_user_config.ioat_chan_num, g_ioat_chan_num, g_ioat_chan_num);
     g_user_config.ioat_chan_num = g_ioat_chan_num;
   }
@@ -514,19 +518,19 @@ int main(int argc, char **argv) {
 
   /* Launch all of the slave workers */
   master_core = spdk_env_get_current_core();
-  master_worker = NULL;
+  master_worker = nullptr;
   worker = g_workers;
-  while (worker != NULL) {
+  while (worker != nullptr) {
     if (worker->core != master_core) {
       spdk_env_thread_launch_pinned(worker->core, work_fn, worker);
     } else {
-      assert(master_worker == NULL);
+      assert(master_worker == nullptr);
       master_worker = worker;
     }
     worker = worker->next;
   }
 
-  assert(master_worker != NULL);
+  assert(master_worker != nullptr);
   rc = work_fn(master_worker);
   if (rc < 0) {
     goto cleanup;
