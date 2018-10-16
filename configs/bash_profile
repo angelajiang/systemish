@@ -58,8 +58,9 @@ function drop_shm()
         fi
     done
 
+    # Sometimes there are too many hugepages for rm
     echo "Cleanup up /dev/hugepages/"
-    sudo rm /dev/hugepages/*
+    find /dev/hugepages -type f -name '*' | xargs rm -f
 }
 
 alias youtubemp3='youtube-dl --extract-audio --audio-format mp3 --audio-quality 0'
