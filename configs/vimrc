@@ -129,6 +129,9 @@ endfunction
 autocmd QuickFixCmdPost [^l]* nested cwindow
 autocmd QuickFixCmdPost    l* nested lwindow
 
+" Enable spellcheck for tex files only
+autocmd BufRead,BufNewFile *.tex setlocal spell
+
 " Don't go to last edit location
 if exists('#fedora')
   autocmd! fedora BufReadPost *
