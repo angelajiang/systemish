@@ -35,6 +35,9 @@ nnoremap  <silent> <s-tab>  :if &modifiable && !&readonly && &modified <CR> :wri
 " Quit all vim splits
 nmap qq :qa<Enter>
 
+" Format
+nmap ff vapgq
+
 " Disable recording
 map q <Nop>
 
